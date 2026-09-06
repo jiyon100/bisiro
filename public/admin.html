@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bisiro — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/bisiro.css" />
+  <script src="/bisiro-shell.js"></script>
+  <style>
+    .admin-tab{font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;font-weight:500;border:none;background:transparent;cursor:pointer;padding:10px 16px;color:var(--text-faint);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s;}
+    .admin-tab.active{color:var(--text);border-bottom-color:var(--accent);}
+    .admin-tabs-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:24px;}
+    th{text-align:left;padding:11px 18px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--text-faint);font-weight:500;border-bottom:1px solid var(--border);}
+    td{padding:13px 18px;border-bottom:1px solid var(--border);font-size:13.5px;}
+    tr:last-child td{border-bottom:none;}
+  </style>
+</head>
+<body>
+<div id="bisiro-app" data-theme="blue" style="display:flex;min-height:100vh;">
+  <aside id="bisiro-sidebar" class="bisiro-sidebar"></aside>
+  <main class="bisiro-main">
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:24px;">
+      <div>
+        <div class="bs-label">Platform</div>
+        <h1 class="bs-page-title" style="margin-top:4px;">Admin Console</h1>
+      </div>
+      <div id="adminBadge" style="font-size:12px;padding:6px 12px;background:color-mix(in srgb,var(--accent) 12%,transparent);border:1px solid var(--accent);border-radius:999px;color:var(--accent);">Platform owner</div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="admin-tabs-bar" id="adminTabs">
+      <button class="admin-tab" onclick="switchTab('overview',this)">Overview</button>
+      <button class="admin-tab" onclick="switchTab('subscribers',this)">Subscribers</button>
+      <button class="admin-tab" onclick="switchTab('payments',this)">Payments</button>
+      <button class="admin-tab" onclick="switchTab('pricing',this)">Pricing</button>
+      <button class="admin-tab" onclick="switchTab('replyLogs',this)">Reply logs</button>
+    </div>
+
+    <div id="tabContent"></div>
+
+  </main>
+</div>
+
+<script>
+let currentTab = '';
+let cachedData = {};
+
+function switchTab(tab, btn) {
+  if (currentTab === tab) return;
+  currentTab = tab;
+  document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  history.replaceState(null, '', '?tab=' + tab);
+  loadTab(tab);
+}
+
+async function api(path) {
+  if (cachedData[path]) return cachedData[path];
+  const r = await fetch(path).then(r => r.json());
+  cachedData[path] = r;
+  return r;
+}
+
+async function loadTab(tab) {
+  const el = document.getElementById('tabContent');
+  el.innerHTML = '<div style="padding:32px;text-align:center;font-size:13px;color:var(--text-faint);">Loading…</div>';
+
+  if (tab === 'overview')     await renderOverview(el);
+  if (tab === 'subscribers')  await renderSubscribers(el);
+  if (tab === 'payments')     await renderPayments(el);
+  if (tab === 'pricing')      await renderPricing(el);
+  if (tab === 'replyLogs')    await renderReplyLogs(el);
+}
+
+async function renderOverview(el) {
+  let stats = { total_users:0, active_users:0, total_revenue_php:0, replies_today:0 };
+  try { stats = await api('/api/admin/stats'); } catch(_) {}
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;" class="bs-kpi-4">
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-label">Total subscribers</div>
+        <div class="bs-num" style="font-size:36px;margin-top:8px;">${stats.total_users||0}</div>
+      </div>
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-label">Active (paid setup)</div>
+        <div class="bs-num" style="font-size:36px;margin-top:8px;">${stats.active_users||0}</div>
+      </div>
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-label">Credits loaded (30d)</div>
+        <div class="bs-num" style="font-size:36px;margin-top:8px;">₱${parseFloat(stats.revenue_last_30d||0).toLocaleString('en-PH',{maximumFractionDigits:0})}</div>
+      </div>
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-label">AI replies (24h)</div>
+        <div class="bs-num" style="font-size:36px;margin-top:8px;">${stats.replies_last_24h||0}</div>
+      </div>
+    </div>
+
+    <div class="bs-section-title">Needs attention</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" class="bs-2col">
+      <div class="bs-attn-amber">
+        <div class="bs-label" style="color:#d98a1f;margin-bottom:8px;">Low-balance subscribers</div>
+        <div id="lowBalUsers" style="font-size:13px;color:var(--text-dim);">Loading…</div>
+      </div>
+      <div class="bs-attn-red">
+        <div class="bs-label" style="color:#d9534f;margin-bottom:8px;">Setup fees pending</div>
+        <div id="pendingSetup" style="font-size:13px;color:var(--text-dim);">Loading…</div>
+      </div>
+    </div>
+  `;
+
+  try {
+    const users = await api('/api/admin/users');
+    const lowBal = users.filter(u => parseFloat(u.credit_balance_php||0) < 50 && u.is_active);
+    document.getElementById('lowBalUsers').textContent = lowBal.length
+      ? lowBal.map(u => u.business_name||u.email).slice(0,3).join(', ') + (lowBal.length>3?' + '+(lowBal.length-3)+' more':'')
+      : 'None — all balances healthy ✓';
+    const pending = users.filter(u => !u.is_active && !u.setup_fee_paid);
+    document.getElementById('pendingSetup').textContent = pending.length
+      ? pending.map(u => u.business_name||u.email).slice(0,3).join(', ') + (pending.length>3?' + '+(pending.length-3)+' more':'')
+      : 'None pending ✓';
+  } catch(_) {}
+}
+
+async function renderSubscribers(el) {
+  let users = [];
+  try { users = await api('/api/admin/users'); } catch(_) {}
+
+  el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <input class="bs-input" style="max-width:280px;" placeholder="Search subscribers…" oninput="filterSubs(this.value)" id="subSearch">
+    <select class="bs-input" style="width:160px;min-height:unset;" id="subFilter" onchange="filterSubs(document.getElementById('subSearch').value)">
+      <option value="">All statuses</option>
+      <option value="active">Active</option>
+      <option value="inactive">Inactive</option>
+    </select>
+  </div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+  <table style="width:100%;border-collapse:collapse;" id="subTable">
+    <thead><tr>
+      <th>Business</th><th>Email</th><th>Balance</th><th>Status</th><th>Joined</th><th></th>
+    </tr></thead>
+    <tbody id="subBody"></tbody>
+  </table></div>`;
+
+  window._adminUsers = users;
+  filterSubs('');
+}
+
+function filterSubs(q) {
+  const users = window._adminUsers || [];
+  const f = document.getElementById('subFilter') ? document.getElementById('subFilter').value : '';
+  const filtered = users.filter(u =>
+    (!q || (u.business_name||u.email||'').toLowerCase().includes(q.toLowerCase())) &&
+    (!f || (f==='active' ? u.is_active : !u.is_active))
+  );
+  const body = document.getElementById('subBody');
+  if (!body) return;
+  if (!filtered.length) { body.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text-faint);font-size:13px;">No subscribers found.</td></tr>'; return; }
+  body.innerHTML = filtered.map(u => {
+    const bal = parseFloat(u.credit_balance_php||0);
+    const balColor = bal < 50 ? '#d9534f' : 'var(--text)';
+    return '<tr class="bs-row-hover">'
+      + '<td><strong>' + (u.business_name||'—') + '</strong></td>'
+      + '<td style="color:var(--text-dim);">' + (u.email||'—') + '</td>'
+      + '<td style="font-family:\'Space Grotesk\',sans-serif;font-weight:600;color:'+balColor+';">₱' + bal.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</td>'
+      + '<td><span class="bs-status ' + (u.is_active ? 'bs-status-green' : 'bs-status-gray') + '">' + (u.is_active ? 'Active' : 'Inactive') + '</span></td>'
+      + '<td style="color:var(--text-faint);">' + (u.created_at ? new Date(u.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—') + '</td>'
+      + '<td><button class="bs-btn-ghost" style="padding:5px 11px;font-size:12px;" onclick="viewSub('+u.id+')">View</button></td>'
+      + '</tr>';
+  }).join('');
+}
+
+function viewSub(id) {
+  const u = (window._adminUsers||[]).find(u => u.id==id);
+  if (!u) return;
+  document.getElementById('tabContent').innerHTML = `
+    <div style="margin-bottom:18px;">
+      <button class="bs-btn-ghost" onclick="switchTab('subscribers',null)">← Back to subscribers</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;" class="bs-2col">
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-section-title" style="margin:0 0 16px;">Account details</div>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;">
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-faint);">Business</span><strong>${u.business_name||'—'}</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-faint);">Email</span><span>${u.email||'—'}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-faint);">Status</span><span class="bs-status ${u.is_active?'bs-status-green':'bs-status-gray'}">${u.is_active?'Active':'Inactive'}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-faint);">Credit balance</span><strong style="font-family:'Space Grotesk',sans-serif;">₱${parseFloat(u.credit_balance_php||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-faint);">Joined</span><span>${u.created_at ? new Date(u.created_at).toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}) : '—'}</span></div>
+        </div>
+        <div style="height:1px;background:var(--border);margin:16px 0;"></div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap;">
+          <button class="bs-btn-primary" onclick="adminAddCredit(${u.id})">Add credit</button>
+          <button class="bs-btn-danger" onclick="adminToggleActive(${u.id},${u.is_active})">${u.is_active?'Deactivate':'Activate'}</button>
+        </div>
+      </div>
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-section-title" style="margin:0 0 14px;">Recent transactions</div>
+        <div id="subTxns" style="font-size:13px;color:var(--text-faint);">Loading…</div>
+      </div>
+    </div>`;
+
+  fetch('/api/admin/user/' + id + '/transactions').then(r => r.json()).then(txns => {
+    const el = document.getElementById('subTxns');
+    if (!txns.length) { el.textContent = 'No transactions yet.'; return; }
+    el.innerHTML = txns.slice(0,8).map(t => '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">'
+      + '<span style="color:var(--text-dim);">' + (t.description||t.type||'—') + '</span>'
+      + '<strong style="font-family:\'Space Grotesk\',sans-serif;">' + (t.type==='topup'?'+':'−') + '₱' + parseFloat(t.amount_php||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</strong>'
+      + '</div>').join('');
+  }).catch(() => { const el = document.getElementById('subTxns'); if(el) el.textContent = 'Could not load.'; });
+}
+
+async function adminAddCredit(id) {
+  const amt = parseFloat(prompt('Add credit (₱):'));
+  if (!amt || amt <= 0) return;
+  try {
+    await fetch('/api/admin/user/' + id + '/add-credit', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({amount_php:amt}) });
+    cachedData = {};
+    alert('Credit added.');
+    viewSub(id);
+  } catch(e) { alert('Failed: ' + e.message); }
+}
+
+async function adminToggleActive(id, current) {
+  if (!confirm((current ? 'Deactivate' : 'Activate') + ' this account?')) return;
+  try {
+    await fetch('/api/admin/user/' + id + '/set-active', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({is_active:!current}) });
+    cachedData = {};
+    switchTab('subscribers', null);
+  } catch(e) { alert('Failed: ' + e.message); }
+}
+
+async function renderPayments(el) {
+  let txns = [];
+  try { txns = await api('/api/admin/transactions'); } catch(_) {}
+  el.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">'
+    + '<table style="width:100%;border-collapse:collapse;"><thead><tr><th>Date</th><th>Business</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>'
+    + '<tbody>'
+    + (txns.length ? txns.map(t => '<tr class="bs-row-hover"><td style="color:var(--text-faint);">' + (t.created_at ? new Date(t.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—') + '</td>'
+      + '<td>' + (t.business_name||'—') + '</td>'
+      + '<td><span class="bs-status bs-status-' + (t.type==='topup'?'green':'gray') + '">' + (t.type||'—') + '</span></td>'
+      + '<td style="font-family:\'Space Grotesk\',sans-serif;font-weight:600;">₱' + parseFloat(t.amount_php||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</td>'
+      + '<td><span class="bs-status bs-status-' + (t.status==='confirmed'?'green':t.status==='failed'?'red':'amber') + '">' + (t.status||'pending') + '</span></td>'
+      + '</tr>').join('')
+    : '<tr><td colspan="5" style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">No transactions yet.</td></tr>')
+    + '</tbody></table></div>';
+}
+
+async function renderPricing(el) {
+  let cfg = { usd_to_php_rate: 56.5, markup_multiplier: 2.9, min_topup_php: 500, setup_fee_php: 20000 };
+  try {
+    const rows = await api('/api/admin/pricing');
+    if (Array.isArray(rows)) { cfg = {}; rows.forEach(r => { cfg[r.key] = parseFloat(r.value); }); }
+    else cfg = rows;
+  } catch(_) {}
+
+  el.innerHTML = `
+    <div style="max-width:560px;">
+      <div class="bs-card" style="border-radius:16px;margin-bottom:20px;">
+        <div class="bs-section-title" style="margin:0 0 18px;">Pricing configuration</div>
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">These values drive the cost formula: <code style="background:var(--surface-2);padding:2px 7px;border-radius:5px;font-size:12px;">anthropic_cost_usd × usd_to_php × 2.9</code></div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">USD → PHP exchange rate</label>
+            <input id="pRate" class="bs-input" type="number" step="0.01" value="${cfg.usd_to_php_rate||56.5}">
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Markup multiplier (currently 2.9×)</label>
+            <input id="pMarkup" class="bs-input" type="number" step="0.1" value="${cfg.markup_multiplier||2.9}">
+            <div style="font-size:12px;color:var(--text-faint);margin-top:4px;">See PROJECT_SPEC §2 before changing this value.</div>
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Minimum top-up (₱)</label>
+            <input id="pMinTopup" class="bs-input" type="number" step="100" value="${cfg.min_topup_php||500}">
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">One-time setup fee (₱)</label>
+            <input id="pSetupFee" class="bs-input" type="number" step="1000" value="${cfg.setup_fee_php||20000}">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:18px;">
+          <button class="bs-btn-primary" onclick="savePricing()">Save pricing</button>
+        </div>
+        <div id="pricingStatus" style="display:none;margin-top:10px;font-size:13px;"></div>
+      </div>
+      <div class="bs-attn-amber">
+        <div class="bs-label" style="color:#d98a1f;margin-bottom:6px;">Warning</div>
+        <div style="font-size:13px;line-height:1.5;">Changing the markup multiplier affects all future credit charges. Existing balances are not retroactively adjusted. See <strong>PROJECT_SPEC §2</strong> for the full pricing rationale.</div>
+      </div>
+    </div>`;
+}
+
+async function savePricing() {
+  const updates = {
+    usd_to_php_rate:   parseFloat(document.getElementById('pRate').value),
+    markup_multiplier: parseFloat(document.getElementById('pMarkup').value),
+    min_topup_php:     parseInt(document.getElementById('pMinTopup').value),
+    setup_fee_php:     parseInt(document.getElementById('pSetupFee').value),
+  };
+  const status = document.getElementById('pricingStatus');
+  try {
+    await Promise.all(Object.entries(updates).map(([key, value]) =>
+      fetch('/api/admin/pricing/' + key, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({value}) })
+    ));
+    cachedData = {};
+    status.style.display = 'block';
+    status.style.color = '#1f9d6b';
+    status.textContent = 'Pricing updated.';
+    setTimeout(() => status.style.display = 'none', 3000);
+  } catch(e) {
+    status.style.display = 'block';
+    status.style.color = '#d9534f';
+    status.textContent = 'Save failed: ' + e.message;
+  }
+}
+
+async function renderReplyLogs(el) {
+  let resp = { rows: [], total: 0 };
+  try { resp = await api('/api/admin/reply-logs?limit=50'); } catch(_) {}
+  const logs = Array.isArray(resp) ? resp : (resp.rows || []);
+  el.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">'
+    + '<table style="width:100%;border-collapse:collapse;"><thead><tr><th>Time</th><th>Business</th><th>Type</th><th>Cost (₱)</th><th>Input tokens</th></tr></thead>'
+    + '<tbody>'
+    + (logs.length ? logs.map(l => '<tr class="bs-row-hover"><td style="color:var(--text-faint);white-space:nowrap;">' + (l.replied_at ? new Date(l.replied_at).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—') + '</td>'
+      + '<td>' + (l.business_name||l.user_email||'—') + '</td>'
+      + '<td><span class="bs-status bs-status-' + (l.reply_type==='spam'?'red':l.reply_type==='closing'?'blue':'green') + '">' + (l.reply_type||'ongoing') + '</span></td>'
+      + '<td style="font-family:\'Space Grotesk\',sans-serif;">₱' + parseFloat(l.cost_php||0).toFixed(4) + '</td>'
+      + '<td style="color:var(--text-dim);">' + (l.input_tokens||'—') + '</td>'
+      + '</tr>').join('')
+    : '<tr><td colspan="5" style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">No reply logs yet.</td></tr>')
+    + '</tbody></table></div>';
+}
+
+BisiroShell.init({ role:'admin', active:'overview', user:{} });
+
+// Activate correct tab from URL
+const tab = new URLSearchParams(location.search).get('tab') || 'overview';
+const tabButtons = document.querySelectorAll('.admin-tab');
+const tabNames = ['overview','subscribers','payments','pricing','replyLogs'];
+const tabIdx = tabNames.indexOf(tab);
+if (tabButtons[tabIdx >= 0 ? tabIdx : 0]) tabButtons[tabIdx >= 0 ? tabIdx : 0].classList.add('active');
+loadTab(tab);
+</script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bisiro — Connect Page Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    .screen { display: none; }
+    .screen.active { display: flex; }
+    .step-dot { transition: all .3s; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-start py-8 px-4">
+
+  <!-- Step indicator -->
+  <div class="w-full max-w-2xl mb-6">
+    <div class="flex items-center justify-between relative">
+      <div class="absolute left-0 right-0 top-4 h-0.5 bg-gray-200 -z-10"></div>
+      <div class="absolute left-0 top-4 h-0.5 bg-blue-500 -z-10 transition-all duration-500" id="progressBar" style="width:0%"></div>
+      <div class="flex justify-between w-full">
+        <div class="flex flex-col items-center gap-1" id="dot1">
+          <div class="step-dot w-8 h-8 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center font-semibold">1</div>
+          <span class="text-xs text-gray-500">Dashboard</span>
+        </div>
+        <div class="flex flex-col items-center gap-1" id="dot2">
+          <div class="step-dot w-8 h-8 rounded-full bg-gray-200 text-gray-500 text-sm flex items-center justify-center font-semibold">2</div>
+          <span class="text-xs text-gray-400">Facebook Login</span>
+        </div>
+        <div class="flex flex-col items-center gap-1" id="dot3">
+          <div class="step-dot w-8 h-8 rounded-full bg-gray-200 text-gray-500 text-sm flex items-center justify-center font-semibold">3</div>
+          <span class="text-xs text-gray-400">Select Page</span>
+        </div>
+        <div class="flex flex-col items-center gap-1" id="dot4">
+          <div class="step-dot w-8 h-8 rounded-full bg-gray-200 text-gray-500 text-sm flex items-center justify-center font-semibold">4</div>
+          <span class="text-xs text-gray-400">Connected!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 1: Dashboard ───────────────────────────────────────────────── -->
+  <div class="screen active w-full max-w-2xl flex-col gap-3" id="step1">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <!-- mini header -->
+      <div class="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between">
+        <span class="text-blue-600 font-bold">bisiro</span>
+        <div class="flex items-center gap-2 text-xs text-gray-500">
+          <span class="bg-gray-100 px-2 py-1 rounded">Balance: ₱0.00</span>
+          <span>Dashboard</span>
+        </div>
+      </div>
+      <!-- page switcher area -->
+      <div class="px-5 py-4 border-b border-gray-100">
+        <button onclick="next()"
+          class="text-sm text-blue-500 hover:text-blue-700 border border-dashed border-blue-300 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition">
+          + Connect a Facebook Page
+        </button>
+        <p class="text-xs text-gray-400 mt-2">No pages connected yet. Click to connect your Facebook Business Page.</p>
+      </div>
+      <!-- stats -->
+      <div class="grid grid-cols-3 divide-x divide-gray-100 px-0">
+        <div class="px-5 py-4"><p class="text-xs text-gray-400 uppercase mb-1">Replies Today</p><p class="text-2xl font-bold text-gray-800">0</p></div>
+        <div class="px-5 py-4"><p class="text-xs text-gray-400 uppercase mb-1">Active Convs</p><p class="text-2xl font-bold text-gray-800">0</p></div>
+        <div class="px-5 py-4"><p class="text-xs text-gray-400 uppercase mb-1">Needs Attention</p><p class="text-2xl font-bold text-amber-500">0</p></div>
+      </div>
+    </div>
+    <div class="text-center">
+      <p class="text-sm text-gray-500">Business owner clicks <strong>+ Connect a Facebook Page</strong></p>
+      <button onclick="next()" class="mt-3 px-5 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition">Next →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: Facebook Login ─────────────────────────────────────────── -->
+  <div class="screen w-full max-w-sm flex-col gap-3" id="step2">
+    <!-- Mock Facebook dialog -->
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+      <!-- FB header -->
+      <div class="bg-[#1877f2] px-5 py-3 flex items-center gap-2">
+        <svg class="w-7 h-7 text-white fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        <span class="text-white font-semibold text-sm">Facebook</span>
+      </div>
+      <div class="px-5 py-4">
+        <p class="text-sm font-semibold text-gray-800 mb-1">Log in to Facebook</p>
+        <p class="text-xs text-gray-500 mb-4">Bisiro is requesting access to manage your Facebook Pages.</p>
+        <div class="space-y-2 mb-4">
+          <input type="email" placeholder="Email or phone number" value="owner@mybusiness.com"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600" readonly />
+          <input type="password" placeholder="Password" value="••••••••"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-400" readonly />
+        </div>
+        <button onclick="next()" class="w-full bg-[#1877f2] text-white rounded-xl py-2 text-sm font-semibold hover:bg-blue-700 transition">
+          Log In
+        </button>
+        <p class="text-center text-xs text-gray-400 mt-3">The owner logs in with their personal Facebook account that manages the business page.</p>
+      </div>
+    </div>
+    <div class="text-center">
+      <button onclick="prev()" class="text-sm text-gray-400 hover:text-gray-600 mr-4">← Back</button>
+      <button onclick="next()" class="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition">Next →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: Select Pages ───────────────────────────────────────────── -->
+  <div class="screen w-full max-w-sm flex-col gap-3" id="step3">
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+      <div class="bg-[#1877f2] px-5 py-3 flex items-center gap-2">
+        <svg class="w-7 h-7 text-white fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        <span class="text-white font-semibold text-sm">Facebook</span>
+      </div>
+      <div class="px-5 py-4">
+        <p class="text-sm font-semibold text-gray-800 mb-1">Bisiro wants to access your pages</p>
+        <p class="text-xs text-gray-500 mb-4">Select which Facebook Pages to connect. Bisiro will be able to read and reply to messages and comments on your behalf.</p>
+
+        <!-- Page list -->
+        <div class="space-y-2 mb-4">
+          <label class="flex items-center gap-3 p-3 border border-blue-300 bg-blue-50 rounded-xl cursor-pointer">
+            <input type="checkbox" checked class="accent-blue-500" />
+            <div class="w-9 h-9 rounded-full bg-orange-400 flex items-center justify-center text-white text-sm font-bold">A</div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">Ate Mae's Lutong Ulam</p>
+              <p class="text-xs text-gray-400">Facebook Page · 1.2k followers</p>
+            </div>
+          </label>
+          <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
+            <input type="checkbox" class="accent-blue-500" />
+            <div class="w-9 h-9 rounded-full bg-purple-400 flex items-center justify-center text-white text-sm font-bold">A</div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">Ate Mae's Catering</p>
+              <p class="text-xs text-gray-400">Facebook Page · 340 followers</p>
+            </div>
+          </label>
+        </div>
+
+        <!-- Permissions list -->
+        <div class="bg-gray-50 rounded-xl p-3 mb-4 space-y-1.5">
+          <p class="text-xs font-semibold text-gray-600 mb-2">Bisiro will be able to:</p>
+          <div class="flex items-start gap-2 text-xs text-gray-500"><span class="text-green-500 mt-0.5">✓</span> Read and reply to Messenger messages</div>
+          <div class="flex items-start gap-2 text-xs text-gray-500"><span class="text-green-500 mt-0.5">✓</span> Read and reply to post comments</div>
+          <div class="flex items-start gap-2 text-xs text-gray-500"><span class="text-green-500 mt-0.5">✓</span> Receive webhook notifications for new messages</div>
+          <div class="flex items-start gap-2 text-xs text-gray-500"><span class="text-red-400 mt-0.5">✗</span> Cannot post on your behalf or access personal profile</div>
+        </div>
+
+        <button onclick="next()" class="w-full bg-[#1877f2] text-white rounded-xl py-2 text-sm font-semibold hover:bg-blue-700 transition">
+          Allow Access
+        </button>
+      </div>
+    </div>
+    <div class="text-center">
+      <button onclick="prev()" class="text-sm text-gray-400 hover:text-gray-600 mr-4">← Back</button>
+      <button onclick="next()" class="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 transition">Next →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: Connected! ─────────────────────────────────────────────── -->
+  <div class="screen w-full max-w-2xl flex-col gap-3" id="step4">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <!-- mini header -->
+      <div class="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between">
+        <span class="text-blue-600 font-bold">bisiro</span>
+        <div class="flex items-center gap-2 text-xs text-gray-500">
+          <span class="bg-gray-100 px-2 py-1 rounded">Balance: ₱0.00</span>
+          <span>Dashboard</span>
+        </div>
+      </div>
+
+      <!-- Page switcher — NOW POPULATED -->
+      <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-2 flex-wrap">
+        <button class="px-3 py-1.5 rounded-lg text-sm bg-blue-600 text-white font-medium flex items-center gap-1.5">
+          Ate Mae's Lutong Ulam
+          <span class="w-2 h-2 rounded-full bg-green-300 inline-block"></span>
+        </button>
+        <button class="px-3 py-1.5 rounded-lg text-sm bg-white border border-dashed border-gray-300 text-gray-400 text-xs">
+          + Add page
+        </button>
+      </div>
+
+      <!-- Stats (now live) -->
+      <div class="grid grid-cols-3 divide-x divide-gray-100">
+        <div class="px-5 py-4"><p class="text-xs text-gray-400 uppercase mb-1">Replies Today</p><p class="text-2xl font-bold text-gray-800">0</p></div>
+        <div class="px-5 py-4"><p class="text-xs text-gray-400 uppercase mb-1">Active Convs</p><p class="text-2xl font-bold text-gray-800">0</p></div>
+        <div class="px-5 py-4"><p class="text-xs text-gray-400 uppercase mb-1">Needs Attention</p><p class="text-2xl font-bold text-amber-500">0</p></div>
+      </div>
+
+      <!-- Success banner -->
+      <div class="mx-4 my-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-start gap-3">
+        <span class="text-green-500 text-xl mt-0.5">✅</span>
+        <div>
+          <p class="text-sm font-semibold text-green-800">Page connected successfully!</p>
+          <p class="text-xs text-green-600 mt-0.5">
+            <strong>Ate Mae's Lutong Ulam</strong> is now linked. Bisiro will receive messages and comments from this page.
+            Complete the <a href="/wizard.html" class="underline">AI Setup Wizard</a> to start auto-replying.
+          </p>
+        </div>
+      </div>
+
+      <!-- What happens next -->
+      <div class="px-5 pb-5">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">What happens next</p>
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 text-sm text-gray-600">
+            <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold shrink-0">1</span>
+            Complete the AI Setup Wizard — tell the AI about your business
+          </div>
+          <div class="flex items-center gap-3 text-sm text-gray-600">
+            <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold shrink-0">2</span>
+            Top up credits (min ₱500) — AI charges per reply, credits never expire
+          </div>
+          <div class="flex items-center gap-3 text-sm text-gray-600">
+            <span class="w-6 h-6 rounded-full bg-green-100 text-green-600 text-xs flex items-center justify-center font-bold shrink-0">✓</span>
+            AI starts auto-replying to messages and comments on your Page
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <button onclick="prev()" class="text-sm text-gray-400 hover:text-gray-600 mr-4">← Back</button>
+      <a href="/dashboard.html" class="px-5 py-2 bg-green-600 text-white rounded-xl text-sm hover:bg-green-700 transition inline-block">
+        Go to Dashboard →
+      </a>
+    </div>
+  </div>
+
+  <script>
+    let current = 1;
+    const total = 4;
+    const progressSteps = [0, 33, 66, 100];
+
+    function show(n) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('step' + n).classList.add('active');
+
+      // Update dots
+      for (let i = 1; i <= total; i++) {
+        const dot = document.querySelector(`#dot${i} .step-dot`);
+        const label = document.querySelector(`#dot${i} span`);
+        if (i < n) {
+          dot.className = 'step-dot w-8 h-8 rounded-full bg-green-500 text-white text-sm flex items-center justify-center font-semibold';
+          dot.textContent = '✓';
+        } else if (i === n) {
+          dot.className = 'step-dot w-8 h-8 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center font-semibold';
+          dot.textContent = i;
+          label.classList.remove('text-gray-400');
+          label.classList.add('text-blue-600', 'font-medium');
+        } else {
+          dot.className = 'step-dot w-8 h-8 rounded-full bg-gray-200 text-gray-500 text-sm flex items-center justify-center font-semibold';
+          dot.textContent = i;
+          label.classList.add('text-gray-400');
+          label.classList.remove('text-blue-600', 'font-medium');
+        }
+      }
+
+      document.getElementById('progressBar').style.width = progressSteps[n - 1] + '%';
+    }
+
+    function next() { if (current < total) { current++; show(current); } }
+    function prev() { if (current > 1) { current--; show(current); } }
+
+    show(1);
+  </script>
+</body>
+</html>

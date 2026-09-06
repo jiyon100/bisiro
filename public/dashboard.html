@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bisiro — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/bisiro.css" />
+  <script src="/bisiro-shell.js"></script>
+  <style>
+    .kpi-credit{background:color-mix(in srgb,var(--accent) 10%,var(--surface));border:1px solid var(--accent);border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;}
+    .page-tab{font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;font-weight:500;border:none;background:transparent;cursor:pointer;padding:10px 14px;color:var(--text-faint);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s;}
+    .page-tab.active{color:var(--text);border-bottom-color:var(--accent);}
+    .page-tabs-bar{display:flex;gap:0;border-bottom:1px solid var(--border);margin:22px 0 18px;}
+  </style>
+</head>
+<body>
+<div id="bisiro-app" data-theme="blue" style="display:flex;min-height:100vh;">
+  <aside id="bisiro-sidebar" class="bisiro-sidebar"></aside>
+  <main class="bisiro-main">
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+      <div>
+        <div class="bs-label">Good morning</div>
+        <h1 id="bizName" class="bs-page-title" style="margin-top:6px;">Loading…</h1>
+        <div id="liveStatus" style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;color:#1f9d6b;background:rgba(31,157,107,0.12);border:1px solid rgba(31,157,107,0.25);padding:5px 11px;border-radius:999px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#1f9d6b;"></span>Loading…
+        </div>
+      </div>
+      <a href="/settings.html" class="bs-btn-ghost" style="margin-top:4px;text-decoration:none;">Page settings</a>
+    </div>
+
+    <div class="page-tabs-bar" id="pageTabs">
+      <button class="page-tab active">All pages</button>
+      <a href="/connect-page.html" style="font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;font-weight:500;color:var(--text-faint);padding:10px 12px;text-decoration:none;align-self:center;">+ Add page</a>
+    </div>
+
+    <!-- KPI grid -->
+    <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:16px;" class="bs-kpi-4">
+      <div class="kpi-credit">
+        <div class="bs-label">Account credit</div>
+        <div id="kpiBalance" class="bs-num" style="font-size:38px;margin-top:6px;line-height:1;">₱—</div>
+        <div id="kpiRepliesEst" style="font-size:12px;color:var(--text-dim);margin-top:6px;">Loading…</div>
+        <div style="flex:1;"></div>
+        <a href="/credits.html" class="bs-btn-primary" style="margin-top:16px;text-decoration:none;justify-content:center;">Load credits</a>
+      </div>
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-label">Replies today</div>
+        <div id="kpiRepliesToday" class="bs-num" style="font-size:34px;margin-top:8px;">—</div>
+        <div id="kpiRepliesDelta" style="font-size:12.5px;color:#1f9d6b;margin-top:6px;">—</div>
+      </div>
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-label">Active conversations</div>
+        <div id="kpiActive" class="bs-num" style="font-size:34px;margin-top:8px;">—</div>
+        <div id="kpiActiveNote" style="font-size:12.5px;color:var(--text-dim);margin-top:6px;">—</div>
+      </div>
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-label">Reply rate / hr</div>
+        <div id="kpiRate" class="bs-num" style="font-size:34px;margin-top:8px;">—</div>
+        <div class="bs-progress-track" style="margin-top:10px;"><div id="kpiRateBar" class="bs-progress-bar" style="width:0%"></div></div>
+        <div style="font-size:11.5px;color:var(--text-faint);margin-top:6px;">Safe under 550 / hr cap</div>
+      </div>
+    </div>
+
+    <div class="bs-section-title">Needs your attention</div>
+    <div id="attentionGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" class="bs-2col">
+      <div class="bs-attn-amber" style="min-height:80px;display:flex;align-items:center;"><span style="font-size:13px;color:var(--text-faint);">Loading…</span></div>
+      <div class="bs-attn-blue" style="min-height:80px;display:flex;align-items:center;"><span style="font-size:13px;color:var(--text-faint);">Loading…</span></div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:30px 0 14px;flex-wrap:wrap;">
+      <div class="bs-section-title" style="margin:0;">Recent conversations</div>
+      <a href="/messages.html" style="font-size:13px;font-weight:500;color:var(--accent);text-decoration:none;">View all →</a>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+      <div id="recentConvs"><div style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">Loading…</div></div>
+    </div>
+
+  </main>
+</div>
+<script>
+const USER_ID = 1;
+
+function timeAgo(ts) {
+  if (!ts) return '';
+  const d = Math.floor((Date.now() - new Date(ts)) / 1000);
+  if (d < 60)    return 'just now';
+  if (d < 3600)  return Math.floor(d/60) + 'm ago';
+  if (d < 86400) return Math.floor(d/3600) + 'h ago';
+  return Math.floor(d/86400) + 'd ago';
+}
+
+function statusInfo(c) {
+  if (c.ai_paused && c.pause_type === 'pending') return { label:'Follow-up due', cls:'bs-status bs-status-amber', dot:'#d98a1f' };
+  if (c.status === 'closing')  return { label:'Closing — review', cls:'bs-status bs-status-blue', dot:'var(--accent)' };
+  if (!c.ai_paused)            return { label:'Automated', cls:'bs-status bs-status-green', dot:'#1f9d6b' };
+  return { label:"You're handling", cls:'bs-status bs-status-gray', dot:'var(--text-faint)' };
+}
+
+async function loadAll() {
+  try {
+    const u = await fetch('/api/settings/user?user_id=' + USER_ID).then(r => r.json());
+    document.getElementById('bizName').textContent = u.business_name || 'My Business';
+    const bal = parseFloat(u.credit_balance_php) || 0;
+    document.getElementById('kpiBalance').textContent = '₱' + bal.toLocaleString('en-PH', {minimumFractionDigits:2,maximumFractionDigits:2});
+    if (bal < 50) document.getElementById('kpiBalance').style.color = '#d9534f';
+    document.getElementById('kpiRepliesEst').textContent = '≈ ' + Math.round(bal / 0.45).toLocaleString() + ' AI replies left · auto-pauses at ₱0';
+    BisiroShell.updateUser({ business_name: u.business_name, tier: u.tier || 'Starter', credit_balance_php: bal });
+  } catch(_) {
+    document.getElementById('bizName').textContent = 'My Business';
+  }
+
+  try {
+    const pages = await fetch('/api/integrations/pages?user_id=' + USER_ID).then(r => r.json());
+    const el = document.getElementById('liveStatus');
+    if (pages && pages.length) {
+      el.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#1f9d6b;"></span>Live · ' + pages.length + ' page' + (pages.length>1?'s':'') + ' connected';
+      renderPageTabs(pages);
+    } else {
+      el.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#d98a1f;"></span>No pages connected';
+      el.style.color = '#d98a1f';
+      el.style.background = 'rgba(217,138,31,0.12)';
+      el.style.borderColor = 'rgba(217,138,31,0.25)';
+    }
+  } catch(_) {}
+
+  try {
+    const convs = await fetch('/api/conversations?user_id=' + USER_ID + '&filter=all').then(r => r.json());
+    renderKPIs(convs);
+    renderAttention(convs);
+    renderRecent(convs);
+  } catch(_) {
+    document.getElementById('recentConvs').innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">No conversations yet.</div>';
+    renderAttention([]);
+  }
+}
+
+function renderPageTabs(pages) {
+  const bar = document.getElementById('pageTabs');
+  const add = '<a href="/connect-page.html" style="font-family:\'IBM Plex Sans\',sans-serif;font-size:13.5px;font-weight:500;color:var(--text-faint);padding:10px 12px;text-decoration:none;align-self:center;">+ Add page</a>';
+  bar.innerHTML = pages.map((p,i) =>
+    '<button class="page-tab'+(i===0?' active':'')+'" onclick="this.closest(\'.page-tabs-bar\').querySelectorAll(\'.page-tab\').forEach(b=>b.classList.remove(\'active\'));this.classList.add(\'active\')">'+(p.page_name||'Page '+(i+1))+'</button>'
+  ).join('')+add;
+}
+
+function renderKPIs(convs) {
+  const active = convs.filter(c => !c.ai_paused && c.status !== 'ended');
+  const needsAttn = convs.filter(c => c.status === 'closing' || (c.ai_paused && c.pause_type === 'pending'));
+  document.getElementById('kpiRepliesToday').textContent = convs.length;
+  document.getElementById('kpiRepliesDelta').textContent = convs.length + ' total conversations';
+  document.getElementById('kpiActive').textContent = active.length;
+  document.getElementById('kpiActiveNote').textContent = needsAttn.length + ' need' + (needsAttn.length!==1?'':'s') + ' attention';
+  const rate = Math.min(convs.length, 550);
+  document.getElementById('kpiRate').textContent = rate + '/550';
+  document.getElementById('kpiRateBar').style.width = Math.round(rate/550*100) + '%';
+}
+
+function renderAttention(convs) {
+  const followups = convs.filter(c => c.ai_paused && c.pause_type === 'pending');
+  const closing   = convs.filter(c => c.status === 'closing');
+  const fu = followups[0], cl = closing[0];
+
+  const fuHtml = fu
+    ? '<div class="bs-label" style="color:#d98a1f;display:flex;align-items:center;gap:7px;"><span style="width:7px;height:7px;border-radius:50%;background:#d98a1f;display:inline-block;"></span>Follow-up due</div><p style="font-size:14px;line-height:1.5;margin:11px 0 0;"><strong>'+(fu.customer_name||'Customer')+'</strong> is waiting on your follow-up.</p><a href="/messages.html?conv='+fu.id+'" class="bs-btn-primary" style="margin-top:14px;text-decoration:none;display:inline-flex;background:#d98a1f;box-shadow:none;">Open conversation</a>'
+    : '<div style="font-size:13px;color:var(--text-faint);">No follow-ups pending ✓</div>';
+
+  const clHtml = cl
+    ? '<div class="bs-label" style="color:var(--accent);display:flex;align-items:center;gap:7px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;"></span>Closing — review</div><p style="font-size:14px;line-height:1.5;margin:11px 0 0;"><strong>'+(cl.customer_name||'Customer')+'</strong> seems ready — AI sent a closing reply.</p><div style="display:flex;gap:9px;margin-top:14px;flex-wrap:wrap;"><a href="/messages.html?conv='+cl.id+'" class="bs-btn-primary" style="text-decoration:none;">Take over</a><a href="/messages.html?conv='+cl.id+'" class="bs-btn-ghost" style="text-decoration:none;">Let AI continue</a></div>'
+    : '<div style="font-size:13px;color:var(--text-faint);">No conversations closing right now ✓</div>';
+
+  document.getElementById('attentionGrid').innerHTML = '<div class="bs-attn-amber">'+fuHtml+'</div><div class="bs-attn-blue">'+clHtml+'</div>';
+}
+
+function renderRecent(convs) {
+  const list = convs.slice(0, 6);
+  const el = document.getElementById('recentConvs');
+  if (!list.length) { el.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">No conversations yet. Connect a Facebook Page to get started.</div>'; return; }
+  el.innerHTML = list.map(c => {
+    const si = statusInfo(c);
+    const initials = (c.customer_name||'?')[0].toUpperCase();
+    return '<a href="/messages.html?conv='+c.id+'" class="bs-row-hover" style="display:flex;align-items:center;gap:14px;padding:15px 20px;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;">'
+      +'<div style="position:relative;flex:none;"><div style="width:40px;height:40px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--text-dim);">'+initials+'</div>'
+      +'<span style="position:absolute;bottom:-1px;right:-1px;width:12px;height:12px;border-radius:50%;background:'+si.dot+';border:2px solid var(--surface);display:block;"></span></div>'
+      +'<div style="min-width:0;flex:1;"><div style="display:flex;align-items:center;gap:9px;"><span style="font-size:14px;font-weight:600;">'+(c.customer_name||c.customer_psid||'Customer')+'</span><span style="font-size:11px;color:var(--text-faint);">Messenger</span></div>'
+      +'<div style="font-size:13px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;max-width:520px;">'+(c.last_message||'—')+'</div></div>'
+      +'<span class="'+si.cls+'" style="flex:none;">'+si.label+'</span>'
+      +'<span style="font-size:12px;color:var(--text-faint);flex:none;width:52px;text-align:right;">'+timeAgo(c.last_message_at)+'</span></a>';
+  }).join('');
+}
+
+BisiroShell.init({ role:'owner', active:'dashboard', user:{} });
+loadAll();
+</script>
+</body>
+</html>

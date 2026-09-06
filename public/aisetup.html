@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bisiro — AI Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/bisiro.css" />
+  <script src="/bisiro-shell.js"></script>
+</head>
+<body>
+<div id="bisiro-app" data-theme="blue" style="display:flex;min-height:100vh;">
+  <aside id="bisiro-sidebar" class="bisiro-sidebar"></aside>
+  <main class="bisiro-main">
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px;">
+      <div>
+        <h1 class="bs-page-title" style="margin-bottom:6px;">AI Setup</h1>
+        <div style="font-size:14px;color:var(--text-dim);">Your AI agent's personality, knowledge, and behavior — all in one place.</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/wizard.html" class="bs-btn-ghost" style="text-decoration:none;">Re-run Setup Wizard</a>
+        <button id="saveBtn" class="bs-btn-primary" onclick="saveConfig()">Save changes</button>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div id="configStatus" style="display:none;margin-bottom:20px;"></div>
+
+    <!-- No config state -->
+    <div id="noConfig" style="display:none;text-align:center;padding:48px 24px;">
+      <div style="font-size:32px;margin-bottom:14px;">🤖</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:8px;">No AI configuration yet</div>
+      <div style="font-size:14px;color:var(--text-dim);margin-bottom:20px;">Run the Setup Wizard to generate your business AI agent.</div>
+      <a href="/wizard.html" class="bs-btn-primary" style="text-decoration:none;">Start Setup Wizard</a>
+    </div>
+
+    <!-- Config editor -->
+    <div id="configEditor" style="display:none;">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;" class="bs-2col">
+
+        <!-- Left: editable fields -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+
+          <div class="bs-card" style="border-radius:16px;">
+            <div class="bs-section-title" style="margin:0 0 14px;">Business context</div>
+            <div style="margin-bottom:14px;">
+              <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">What you sell</label>
+              <textarea id="fieldContext" class="bs-input bs-textarea" style="min-height:80px;"></textarea>
+            </div>
+            <div style="margin-bottom:14px;">
+              <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Tone / personality</label>
+              <select id="fieldTone" class="bs-input" style="min-height:unset;">
+                <option value="friendly">Friendly & helpful</option>
+                <option value="professional">Professional</option>
+                <option value="casual">Casual & fun</option>
+                <option value="formal">Formal</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Language preference</label>
+              <select id="fieldLang" class="bs-input" style="min-height:unset;">
+                <option value="taglish">Taglish (default)</option>
+                <option value="tagalog">Tagalog only</option>
+                <option value="english">English only</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bs-card" style="border-radius:16px;">
+            <div class="bs-section-title" style="margin:0 0 14px;">Sample messages</div>
+            <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px;">These teach the AI how your customers typically message you.</div>
+            <textarea id="fieldSamples" class="bs-input bs-textarea" style="min-height:110px;font-size:13px;" placeholder="e.g. Magkano po ung medium size? / Do you have large?"></textarea>
+          </div>
+
+          <!-- Test preview -->
+          <div class="bs-card" style="border-radius:16px;">
+            <div class="bs-section-title" style="margin:0 0 14px;">Test your bot</div>
+            <textarea id="testMsg" class="bs-input bs-textarea" style="min-height:70px;" placeholder="Type a sample customer message…"></textarea>
+            <button class="bs-btn-ghost" style="margin-top:10px;width:100%;justify-content:center;" onclick="testBot()">▶ Test reply</button>
+            <div id="testResult" style="display:none;margin-top:14px;padding:14px;background:var(--surface-2);border-radius:10px;font-size:13.5px;line-height:1.6;"></div>
+          </div>
+
+        </div>
+
+        <!-- Right: system prompt (read-only + editable) -->
+        <div class="bs-card" style="border-radius:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+            <div class="bs-section-title" style="margin:0;">System prompt</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button id="editPromptBtn" class="bs-btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="togglePromptEdit()">Edit</button>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">This is the AI prompt generated by the Setup Wizard. Advanced users can edit it directly.</div>
+          <textarea id="fieldPrompt" class="bs-input bs-textarea" readonly style="min-height:480px;font-size:12.5px;line-height:1.6;font-family:'IBM Plex Mono',monospace;background:var(--surface-2);"></textarea>
+          <div id="configMeta" style="margin-top:12px;font-size:12px;color:var(--text-faint);"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+<script>
+const USER_ID = 1;
+let configId = null;
+let promptEditing = false;
+
+async function loadConfig() {
+  try {
+    const u = await fetch('/api/settings/user?user_id=' + USER_ID).then(r => r.json());
+    BisiroShell.updateUser({ business_name: u.business_name });
+  } catch(_) {}
+
+  try {
+    const cfg = await fetch('/api/wizard/config?user_id=' + USER_ID).then(r => r.json());
+    if (cfg.error) { showNoConfig(); return; }
+    configId = cfg.id;
+    document.getElementById('noConfig').style.display = 'none';
+    document.getElementById('configEditor').style.display = 'block';
+
+    document.getElementById('fieldContext').value  = cfg.business_context || '';
+    document.getElementById('fieldTone').value     = cfg.tone || 'friendly';
+    document.getElementById('fieldLang').value     = cfg.language_preference || 'taglish';
+    document.getElementById('fieldSamples').value  = cfg.sample_messages || '';
+    document.getElementById('fieldPrompt').value   = cfg.system_prompt || '';
+    if (cfg.created_at) {
+      document.getElementById('configMeta').textContent = 'Generated ' + new Date(cfg.created_at).toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'});
+    }
+  } catch(_) {
+    showNoConfig();
+  }
+}
+
+function showNoConfig() {
+  document.getElementById('noConfig').style.display = 'block';
+  document.getElementById('configEditor').style.display = 'none';
+}
+
+function togglePromptEdit() {
+  promptEditing = !promptEditing;
+  const ta = document.getElementById('fieldPrompt');
+  const btn = document.getElementById('editPromptBtn');
+  ta.readOnly = !promptEditing;
+  ta.style.background = promptEditing ? 'var(--surface)' : 'var(--surface-2)';
+  btn.textContent = promptEditing ? 'Lock' : 'Edit';
+}
+
+async function saveConfig() {
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  const status = document.getElementById('configStatus');
+  status.style.display = 'none';
+
+  try {
+    if (promptEditing && configId) {
+      await fetch('/api/wizard/prompt/' + configId, {
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ system_prompt: document.getElementById('fieldPrompt').value })
+      });
+    }
+    status.style.display = 'block';
+    status.innerHTML = '<div class="bs-attn-blue">Changes saved successfully.</div>';
+    setTimeout(() => status.style.display = 'none', 3000);
+  } catch(e) {
+    status.style.display = 'block';
+    status.innerHTML = '<div class="bs-attn-red">Save failed: ' + e.message + '</div>';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Save changes';
+}
+
+async function testBot() {
+  const msg = document.getElementById('testMsg').value.trim();
+  if (!msg) return;
+  const result = document.getElementById('testResult');
+  result.style.display = 'block';
+  result.innerHTML = '<span style="color:var(--text-faint);">Thinking…</span>';
+  try {
+    const r = await fetch('/api/wizard/preview', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ system_prompt: document.getElementById('fieldPrompt').value, sample_message: msg })
+    }).then(r => r.json());
+    result.innerHTML = '<div class="bs-label" style="margin-bottom:7px;">AI reply</div>'
+      + '<div>' + (r.reply || r.error || 'No reply') + '</div>'
+      + (r.status ? '<div style="margin-top:8px;"><span class="bs-status bs-status-' + (r.status==='spam'?'red':r.status==='closing'?'blue':'green') + '">' + r.status + '</span></div>' : '');
+  } catch(e) {
+    result.innerHTML = '<span style="color:#d9534f;">Error: ' + e.message + '</span>';
+  }
+}
+
+BisiroShell.init({ role:'owner', active:'aisetup', user:{} });
+loadConfig();
+</script>
+</body>
+</html>

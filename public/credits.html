@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bisiro — Credits & Billing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/bisiro.css" />
+  <script src="/bisiro-shell.js"></script>
+</head>
+<body>
+<div id="bisiro-app" data-theme="blue" style="display:flex;min-height:100vh;">
+  <aside id="bisiro-sidebar" class="bisiro-sidebar"></aside>
+  <main class="bisiro-main">
+
+    <h1 class="bs-page-title" style="margin-bottom:6px;">Credits &amp; Billing</h1>
+    <div style="font-size:14px;color:var(--text-dim);margin-bottom:28px;">Your prepaid credit balance powers all AI automation. Credits never expire.</div>
+
+    <!-- Balance + top-up -->
+    <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:20px;align-items:start;" class="bs-2col">
+
+      <!-- Balance card -->
+      <div class="bs-card-accent" style="border-radius:18px;">
+        <div class="bs-label">Current balance</div>
+        <div id="balanceDisplay" class="bs-num" style="font-size:48px;margin-top:10px;line-height:1;">₱—</div>
+        <div id="balanceNote" style="font-size:13px;color:var(--text-dim);margin-top:8px;">Loading…</div>
+        <div id="lowBalanceWarning" style="display:none;margin-top:14px;padding:11px 14px;background:rgba(217,138,31,0.14);border:1px solid rgba(217,138,31,0.4);border-radius:10px;font-size:13px;color:#d98a1f;">
+          ⚠ Balance is low. AI automation will pause at ₱0.
+        </div>
+        <div style="height:1px;background:var(--border);margin:20px 0;"></div>
+        <div class="bs-label">Auto-pause threshold</div>
+        <div style="font-size:22px;font-family:'Space Grotesk',sans-serif;font-weight:600;margin-top:6px;">₱0.00</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Low-balance alert: below ₱50</div>
+      </div>
+
+      <!-- Top-up card -->
+      <div class="bs-card" style="border-radius:18px;">
+        <div class="bs-section-title" style="margin:0 0 16px;">Load credits</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+          <button class="amount-btn" onclick="selectAmount(this,500)">₱500</button>
+          <button class="amount-btn" onclick="selectAmount(this,1000)">₱1,000</button>
+          <button class="amount-btn" onclick="selectAmount(this,2000)">₱2,000</button>
+          <button class="amount-btn" onclick="selectAmount(this,5000)">₱5,000</button>
+        </div>
+
+        <div style="font-size:12.5px;color:var(--text-faint);margin-bottom:8px;">Or enter a custom amount (min ₱500)</div>
+        <input id="customAmount" class="bs-input" type="number" min="500" step="100" placeholder="e.g. 1500" oninput="onCustom(this.value)" style="margin-bottom:16px;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <span style="font-size:13px;color:var(--text-dim);">Amount to pay:</span>
+          <span id="amountDisplay" class="bs-num" style="font-size:20px;">₱—</span>
+        </div>
+
+        <div style="font-size:12.5px;color:var(--text-faint);margin-bottom:12px;">Payment via GCash, Maya, or card through PayMongo.</div>
+        <button id="topupBtn" class="bs-btn-primary" onclick="startTopup()" style="width:100%;justify-content:center;" disabled>Load credits</button>
+
+        <div id="topupStatus" style="margin-top:12px;font-size:13px;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Transaction history -->
+    <div class="bs-section-title">Transaction history</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+      <div id="txTable">
+        <div style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">Loading…</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<style>
+  .amount-btn{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;color:var(--text);transition:all .12s;}
+  .amount-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .amount-btn.active{background:color-mix(in srgb,var(--accent) 15%,transparent);border-color:var(--accent);color:var(--accent);}
+</style>
+
+<script>
+const USER_ID = 1;
+let selectedAmount = null;
+
+function selectAmount(btn, amt) {
+  document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('customAmount').value = '';
+  selectedAmount = amt;
+  document.getElementById('amountDisplay').textContent = '₱' + amt.toLocaleString('en-PH');
+  document.getElementById('topupBtn').disabled = false;
+}
+
+function onCustom(val) {
+  document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+  const n = parseInt(val);
+  if (n >= 500) {
+    selectedAmount = n;
+    document.getElementById('amountDisplay').textContent = '₱' + n.toLocaleString('en-PH');
+    document.getElementById('topupBtn').disabled = false;
+  } else {
+    selectedAmount = null;
+    document.getElementById('amountDisplay').textContent = '₱—';
+    document.getElementById('topupBtn').disabled = true;
+  }
+}
+
+async function startTopup() {
+  if (!selectedAmount) return;
+  const btn = document.getElementById('topupBtn');
+  const status = document.getElementById('topupStatus');
+  btn.disabled = true;
+  btn.textContent = 'Processing…';
+  status.style.display = 'none';
+  try {
+    // PayMongo integration — creates a checkout session
+    const res = await fetch('/api/payments/topup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: USER_ID, amount_php: selectedAmount })
+    }).then(r => r.json());
+
+    if (res.checkout_url) {
+      window.location.href = res.checkout_url;
+    } else {
+      status.style.display = 'block';
+      status.style.color = '#d9534f';
+      status.textContent = res.error || 'Payment setup failed. Please try again.';
+    }
+  } catch(e) {
+    status.style.display = 'block';
+    status.style.color = '#d9534f';
+    status.textContent = 'Could not connect to payment service. Please try again.';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Load credits';
+}
+
+async function loadData() {
+  try {
+    const u = await fetch('/api/settings/user?user_id=' + USER_ID).then(r => r.json());
+    const bal = parseFloat(u.credit_balance_php) || 0;
+    document.getElementById('balanceDisplay').textContent = '₱' + bal.toLocaleString('en-PH', {minimumFractionDigits:2,maximumFractionDigits:2});
+    document.getElementById('balanceDisplay').style.color = bal < 50 ? '#d9534f' : 'var(--text)';
+    const est = Math.round(bal / 0.45);
+    document.getElementById('balanceNote').textContent = '≈ ' + est.toLocaleString() + ' AI replies remaining';
+    if (bal < 50) document.getElementById('lowBalanceWarning').style.display = 'block';
+    BisiroShell.updateUser({ business_name: u.business_name, credit_balance_php: bal });
+  } catch(_) {}
+
+  try {
+    const txns = await fetch('/api/payments/history?user_id=' + USER_ID).then(r => r.json());
+    renderTx(txns);
+  } catch(_) {
+    renderTx([]);
+  }
+}
+
+function renderTx(txns) {
+  const el = document.getElementById('txTable');
+  if (!txns.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">No transactions yet. Load credits to get started.</div>';
+    return;
+  }
+  el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13.5px;">'
+    + '<thead><tr style="border-bottom:1px solid var(--border);">'
+    + '<th style="text-align:left;padding:12px 20px;font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:0.1em;color:var(--text-faint);font-weight:500;">DATE</th>'
+    + '<th style="text-align:left;padding:12px 20px;font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:0.1em;color:var(--text-faint);font-weight:500;">DESCRIPTION</th>'
+    + '<th style="text-align:right;padding:12px 20px;font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:0.1em;color:var(--text-faint);font-weight:500;">AMOUNT</th>'
+    + '<th style="text-align:right;padding:12px 20px;font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:0.1em;color:var(--text-faint);font-weight:500;">BALANCE</th>'
+    + '</tr></thead><tbody>'
+    + txns.map(t => {
+      const isCredit = t.type === 'topup' || t.type === 'credit';
+      const sign = isCredit ? '+' : '-';
+      const color = isCredit ? '#1f9d6b' : 'var(--text-dim)';
+      return '<tr class="bs-row-hover" style="border-bottom:1px solid var(--border);">'
+        + '<td style="padding:13px 20px;color:var(--text-faint);white-space:nowrap;">' + new Date(t.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) + '</td>'
+        + '<td style="padding:13px 20px;">' + (t.description||t.type||'—') + '</td>'
+        + '<td style="padding:13px 20px;text-align:right;font-family:\'Space Grotesk\',sans-serif;font-weight:600;color:'+color+';">' + sign + '₱' + parseFloat(t.amount_php||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</td>'
+        + '<td style="padding:13px 20px;text-align:right;font-family:\'Space Grotesk\',sans-serif;color:var(--text-dim);">₱' + parseFloat(t.balance_after_php||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</td>'
+        + '</tr>';
+    }).join('')
+    + '</tbody></table>';
+}
+
+BisiroShell.init({ role:'owner', active:'credits', user:{} });
+loadData();
+</script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bisiro — Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/bisiro.css" />
+  <script src="/bisiro-shell.js"></script>
+</head>
+<body>
+<div id="bisiro-app" data-theme="blue" style="display:flex;min-height:100vh;">
+  <aside id="bisiro-sidebar" class="bisiro-sidebar"></aside>
+  <main class="bisiro-main">
+
+    <h1 class="bs-page-title" style="margin-bottom:28px;">Settings</h1>
+
+    <div style="max-width:720px;display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Account -->
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-section-title" style="margin:0 0 18px;">Account</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Business name</label>
+            <input id="bizName" class="bs-input" type="text" placeholder="Your business name">
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Email address</label>
+            <input id="email" class="bs-input" type="email" placeholder="you@example.com">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+          <button class="bs-btn-primary" onclick="saveAccount()">Save account</button>
+        </div>
+        <div id="accountStatus" style="display:none;margin-top:10px;font-size:13px;"></div>
+      </div>
+
+      <!-- Facebook pages -->
+      <div class="bs-card" style="border-radius:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;">
+          <div class="bs-section-title" style="margin:0;">Connected Facebook pages</div>
+          <a href="/connect-page.html" class="bs-btn-ghost" style="text-decoration:none;font-size:12.5px;">+ Connect page</a>
+        </div>
+        <div id="pagesList">
+          <div style="font-size:13px;color:var(--text-faint);">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Automation -->
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-section-title" style="margin:0 0 18px;">Automation</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-size:14px;font-weight:500;">Auto-reply to comments</div>
+            <div style="font-size:12.5px;color:var(--text-dim);margin-top:2px;">AI replies to public comments on your posts</div>
+          </div>
+          <button id="toggleComments" class="bs-toggle" onclick="toggleFeature('comments',this)"></button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-size:14px;font-weight:500;">Auto-reply to Messenger DMs</div>
+            <div style="font-size:12.5px;color:var(--text-dim);margin-top:2px;">AI replies to private Messenger conversations</div>
+          </div>
+          <button id="toggleDms" class="bs-toggle" onclick="toggleFeature('dms',this)"></button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;">
+          <div>
+            <div style="font-size:14px;font-weight:500;">Low-balance notification</div>
+            <div style="font-size:12.5px;color:var(--text-dim);margin-top:2px;">Alert when credit drops below ₱50</div>
+          </div>
+          <button id="toggleLowbal" class="bs-toggle" onclick="toggleFeature('lowbal',this)"></button>
+        </div>
+      </div>
+
+      <!-- Theme -->
+      <div class="bs-card" style="border-radius:16px;">
+        <div class="bs-section-title" style="margin:0 0 16px;">Appearance</div>
+        <div class="bs-label" style="margin-bottom:10px;">Theme</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="theme-option" data-theme="blue" onclick="applyThemeOption(this)">
+            <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#0e1730 50%,#4d8bff 50%);margin-bottom:6px;"></div>
+            <div style="font-size:12px;">Blue</div>
+          </button>
+          <button class="theme-option" data-theme="dark" onclick="applyThemeOption(this)">
+            <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#0a0d13 50%,#5b8cff 50%);margin-bottom:6px;"></div>
+            <div style="font-size:12px;">Dark</div>
+          </button>
+          <button class="theme-option" data-theme="light" onclick="applyThemeOption(this)">
+            <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#f6f7f9 50%,#2f6bff 50%);margin-bottom:6px;"></div>
+            <div style="font-size:12px;">Light</div>
+          </button>
+          <button class="theme-option" data-theme="green" onclick="applyThemeOption(this)">
+            <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#0d1d18 50%,#2dd4a7 50%);margin-bottom:6px;"></div>
+            <div style="font-size:12px;">Green</div>
+          </button>
+          <button class="theme-option" data-theme="warm" onclick="applyThemeOption(this)">
+            <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#fffdf8 50%,#cf7a1c 50%);margin-bottom:6px;"></div>
+            <div style="font-size:12px;">Warm</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="bs-card" style="border-radius:16px;border-color:rgba(217,83,79,0.3);">
+        <div class="bs-section-title" style="margin:0 0 14px;color:#d9534f;">Danger zone</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:14px;font-weight:500;">Pause all automation</div>
+            <div style="font-size:12.5px;color:var(--text-dim);margin-top:2px;">Immediately stop all AI replies across all pages</div>
+          </div>
+          <button class="bs-btn-danger" onclick="pauseAll()">Pause all</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<style>
+  .theme-option{background:transparent;border:2px solid transparent;border-radius:12px;padding:8px;cursor:pointer;text-align:center;color:var(--text-dim);transition:border-color .15s;}
+  .theme-option.active{border-color:var(--accent);}
+  .theme-option:hover{border-color:var(--border-strong);}
+</style>
+
+<script>
+const USER_ID = 1;
+const featureState = { comments: true, dms: true, lowbal: true };
+
+function setToggle(id, val) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.style.background = val ? 'var(--accent)' : 'var(--surface-2)';
+  const knob = btn.querySelector('.knob') || document.createElement('span');
+  knob.className = 'bs-toggle-knob knob';
+  knob.style.left = val ? '23px' : '3px';
+  btn.innerHTML = '';
+  btn.appendChild(knob);
+}
+
+function toggleFeature(key, btn) {
+  featureState[key] = !featureState[key];
+  const toggleId = { comments:'toggleComments', dms:'toggleDms', lowbal:'toggleLowbal' }[key];
+  setToggle(toggleId, featureState[key]);
+}
+
+function applyThemeOption(btn) {
+  document.querySelectorAll('.theme-option').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  BisiroShell.setTheme(btn.dataset.theme);
+}
+
+async function loadData() {
+  try {
+    const u = await fetch('/api/settings/user?user_id=' + USER_ID).then(r => r.json());
+    document.getElementById('bizName').value = u.business_name || '';
+    document.getElementById('email').value   = u.email || '';
+    BisiroShell.updateUser({ business_name: u.business_name });
+
+    // Set active theme
+    const t = localStorage.getItem('bisiro-theme') || 'blue';
+    document.querySelectorAll('.theme-option').forEach(b => {
+      if (b.dataset.theme === t) b.classList.add('active');
+    });
+  } catch(_) {}
+
+  // Toggle initial states
+  setToggle('toggleComments', true);
+  setToggle('toggleDms', true);
+  setToggle('toggleLowbal', true);
+
+  // Pages
+  try {
+    const pages = await fetch('/api/integrations/pages?user_id=' + USER_ID).then(r => r.json());
+    renderPages(pages);
+  } catch(_) {
+    renderPages([]);
+  }
+}
+
+function renderPages(pages) {
+  const el = document.getElementById('pagesList');
+  if (!pages.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--text-faint);">No pages connected. <a href="/connect-page.html" style="color:var(--accent);">Connect one now →</a></div>';
+    return;
+  }
+  el.innerHTML = pages.map(p => '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);gap:12px;">'
+    + '<div><div style="font-size:14px;font-weight:500;">'+(p.page_name||'Page')+'</div>'
+    + '<div style="font-size:12px;color:var(--text-faint);">'+p.page_id+'</div></div>'
+    + '<span class="bs-status bs-status-green">Connected</span>'
+    + '</div>').join('');
+}
+
+async function saveAccount() {
+  const status = document.getElementById('accountStatus');
+  try {
+    await fetch('/api/settings/user', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ user_id: USER_ID, business_name: document.getElementById('bizName').value, email: document.getElementById('email').value })
+    });
+    status.style.display = 'block';
+    status.style.color = '#1f9d6b';
+    status.textContent = 'Account updated.';
+    setTimeout(() => status.style.display = 'none', 3000);
+  } catch(e) {
+    status.style.display = 'block';
+    status.style.color = '#d9534f';
+    status.textContent = 'Save failed: ' + e.message;
+  }
+}
+
+async function pauseAll() {
+  if (!confirm('Pause all AI automation? You can resume anytime from your dashboard.')) return;
+  try {
+    await fetch('/api/integrations/pause-all', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:USER_ID}) });
+    alert('All automation paused.');
+  } catch(e) { alert('Failed: ' + e.message); }
+}
+
+BisiroShell.init({ role:'owner', active:'settings', user:{} });
+loadData();
+</script>
+</body>
+</html>

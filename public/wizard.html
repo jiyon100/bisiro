@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bisiro — Setup Wizard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/bisiro.css" />
+  <script src="/bisiro-shell.js"></script>
+  <style>
+    body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh;padding:40px 20px;}
+    .wizard-wrap{width:100%;max-width:640px;}
+    .step{display:none;}.step.active{display:block;}
+    .step-indicator{display:flex;align-items:center;gap:0;margin-bottom:32px;}
+    .step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace;flex:none;transition:all .2s;}
+    .step-dot.done{background:var(--accent);color:var(--accent-contrast);}
+    .step-dot.active{background:var(--accent);color:var(--accent-contrast);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent);}
+    .step-dot.pending{background:var(--surface-2);color:var(--text-faint);border:1.5px solid var(--border);}
+    .step-line{flex:1;height:2px;background:var(--border);}
+    .step-line.done{background:var(--accent);}
+  </style>
+</head>
+<body>
+<div id="bisiro-app" data-theme="blue" style="min-height:100vh;width:100%;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;">
+
+  <!-- Theme dots top-right -->
+  <div id="themeCorner" style="position:fixed;top:16px;right:16px;display:flex;gap:6px;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:999px;z-index:50;"></div>
+
+  <div class="wizard-wrap">
+
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:36px;">
+      <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:18px;">
+        <div style="width:36px;height:36px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:var(--accent-contrast);">B</div>
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;">Bisiro</span>
+      </div>
+      <h1 class="bs-page-title" style="font-size:28px;margin-bottom:8px;">Setup Wizard</h1>
+      <div style="font-size:14px;color:var(--text-dim);">Tell us about your business so your AI agent knows exactly how to help your customers.</div>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="step-indicator" id="stepIndicator"></div>
+
+    <!-- Steps -->
+    <div id="step1" class="step active">
+      <div class="bs-card-lg" style="border-radius:18px;">
+        <div class="bs-label" style="margin-bottom:4px;">Step 1 of 5</div>
+        <div style="font-size:19px;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-bottom:18px;">What's your business?</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Business name *</label>
+            <input id="w_business_name" class="bs-input" placeholder="e.g. Ate Len's Ukay Ukay">
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">What do you sell? *</label>
+            <textarea id="w_what_you_sell" class="bs-input bs-textarea" style="min-height:90px;" placeholder="e.g. Pre-loved branded clothing, bags, and shoes. Mostly Korean brands."></textarea>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+          <button class="bs-btn-primary" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="step2" class="step">
+      <div class="bs-card-lg" style="border-radius:18px;">
+        <div class="bs-label" style="margin-bottom:4px;">Step 2 of 5</div>
+        <div style="font-size:19px;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-bottom:18px;">Products & stock</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Product catalog (describe what you have)</label>
+            <textarea id="w_product_catalog" class="bs-input bs-textarea" style="min-height:90px;" placeholder="e.g. Tops: ₱150–₱300, Bottoms: ₱200–₱400, Bags: ₱500–₱1500"></textarea>
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Sizes / variants available</label>
+            <input id="w_variants" class="bs-input" placeholder="e.g. XS, S, M, L, XL — Free size only — One color, multiple sizes">
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Stock rules (what to say when out of stock?)</label>
+            <input id="w_stock_rules" class="bs-input" placeholder="e.g. Say sorry and offer to notify them, or suggest similar items">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:20px;">
+          <button class="bs-btn-ghost" onclick="prevStep()">← Back</button>
+          <button class="bs-btn-primary" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="step3" class="step">
+      <div class="bs-card-lg" style="border-radius:18px;">
+        <div class="bs-label" style="margin-bottom:4px;">Step 3 of 5</div>
+        <div style="font-size:19px;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-bottom:18px;">Payments & policies</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Payment & delivery options</label>
+            <textarea id="w_payment_delivery" class="bs-input bs-textarea" style="min-height:80px;" placeholder="e.g. GCash, COD. Shipping via LBC nationwide. Same-day delivery Taguig area. Meetup BGC."></textarea>
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Return / exchange policy</label>
+            <textarea id="w_return_policy" class="bs-input bs-textarea" style="min-height:60px;" placeholder="e.g. No returns once paid. Exchange within 24hrs if defective."></textarea>
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Business hours</label>
+            <input id="w_business_hours" class="bs-input" placeholder="e.g. Mon–Sat 9am–9pm, Sunday closed">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:20px;">
+          <button class="bs-btn-ghost" onclick="prevStep()">← Back</button>
+          <button class="bs-btn-primary" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="step4" class="step">
+      <div class="bs-card-lg" style="border-radius:18px;">
+        <div class="bs-label" style="margin-bottom:4px;">Step 4 of 5</div>
+        <div style="font-size:19px;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-bottom:18px;">Tone & customers</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Who are your typical customers?</label>
+            <input id="w_typical_customers" class="bs-input" placeholder="e.g. Young women 18–35, bargain hunters, resellers">
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">AI tone / personality</label>
+            <select id="w_tone" class="bs-input" style="min-height:unset;">
+              <option value="friendly">Friendly & helpful — feels like chatting with the owner</option>
+              <option value="professional">Professional — courteous, business-like</option>
+              <option value="casual">Casual & fun — uses slang, emojis ok</option>
+              <option value="formal">Formal — very polite, minimal slang</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Language preference</label>
+            <select id="w_languages" class="bs-input" style="min-height:unset;">
+              <option value="taglish">Taglish (mix of Tagalog & English) — recommended</option>
+              <option value="tagalog">Tagalog only</option>
+              <option value="english">English only</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Things the AI should NEVER say</label>
+            <input id="w_never_say" class="bs-input" placeholder="e.g. Don't promise a specific delivery date. Never mention competitor names.">
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">When to hand off to you (escalation)</label>
+            <input id="w_escalation" class="bs-input" placeholder="e.g. Bulk orders, complaints, anything over ₱5000">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:20px;">
+          <button class="bs-btn-ghost" onclick="prevStep()">← Back</button>
+          <button class="bs-btn-primary" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="step5" class="step">
+      <div class="bs-card-lg" style="border-radius:18px;">
+        <div class="bs-label" style="margin-bottom:4px;">Step 5 of 5</div>
+        <div style="font-size:19px;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-bottom:18px;">Sample messages</div>
+        <div style="font-size:13.5px;color:var(--text-dim);margin-bottom:14px;">Paste a few real messages your customers send. This helps the AI match your audience's style.</div>
+        <textarea id="w_sample_messages" class="bs-input bs-textarea" style="min-height:130px;" placeholder="Magkano po ung medium?&#10;Do you have large size?&#10;Pano mag order? Gcash ok?&#10;Anu available colors?"></textarea>
+        <div style="display:flex;justify-content:space-between;margin-top:20px;">
+          <button class="bs-btn-ghost" onclick="prevStep()">← Back</button>
+          <button class="bs-btn-primary" id="generateBtn" onclick="generatePrompt()">Generate AI agent →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generating -->
+    <div id="stepGenerating" class="step">
+      <div class="bs-card-lg" style="border-radius:18px;text-align:center;padding:48px 24px;">
+        <div style="font-size:32px;margin-bottom:16px;">✨</div>
+        <div style="font-size:18px;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-bottom:10px;">Building your AI agent…</div>
+        <div style="font-size:14px;color:var(--text-dim);">Claude Sonnet is reading your business info and writing a custom prompt. This takes about 15–30 seconds.</div>
+        <div style="margin-top:24px;height:4px;background:var(--surface-2);border-radius:99px;overflow:hidden;">
+          <div id="genBar" style="height:100%;background:var(--accent);border-radius:99px;width:0%;transition:width 0.4s;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Done / preview -->
+    <div id="stepDone" class="step">
+      <div class="bs-card-lg" style="border-radius:18px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#1f9d6b;display:flex;align-items:center;justify-content:center;font-size:18px;">✓</div>
+          <div style="font-size:19px;font-weight:700;font-family:'Space Grotesk',sans-serif;">Your AI agent is ready!</div>
+        </div>
+
+        <div class="bs-label" style="margin-bottom:8px;">Generated system prompt</div>
+        <textarea id="resultPrompt" class="bs-input bs-textarea" style="min-height:220px;font-size:12.5px;line-height:1.6;font-family:'IBM Plex Mono',monospace;background:var(--surface-2);" readonly></textarea>
+
+        <div style="height:1px;background:var(--border);margin:20px 0;"></div>
+
+        <div class="bs-label" style="margin-bottom:10px;">Test your bot</div>
+        <div style="display:flex;gap:10px;">
+          <input id="testMsgInput" class="bs-input" placeholder="Type a sample customer message…" style="flex:1;" onkeydown="if(event.key==='Enter')testPreview()">
+          <button class="bs-btn-ghost" onclick="testPreview()">Test</button>
+        </div>
+        <div id="testOut" style="display:none;margin-top:12px;padding:14px;background:var(--surface-2);border-radius:10px;font-size:13.5px;line-height:1.6;"></div>
+
+        <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+          <a href="/dashboard.html" class="bs-btn-primary" style="text-decoration:none;">Go to Dashboard</a>
+          <a href="/aisetup.html" class="bs-btn-ghost" style="text-decoration:none;">Edit prompt</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="errorMsg" style="display:none;margin-top:16px;" class="bs-attn-red"></div>
+
+  </div>
+</div>
+
+<script>
+const USER_ID = 1;
+const STEPS = 5;
+let currentStep = 1;
+let generatedPromptId = null;
+let generatedPrompt = '';
+
+// Theme corner
+(function() {
+  const DOTS = { light:'linear-gradient(135deg,#f6f7f9 50%,#2f6bff 50%)', dark:'linear-gradient(135deg,#0a0d13 50%,#5b8cff 50%)', blue:'linear-gradient(135deg,#0e1730 50%,#4d8bff 50%)', green:'linear-gradient(135deg,#0d1d18 50%,#2dd4a7 50%)', warm:'linear-gradient(135deg,#fffdf8 50%,#cf7a1c 50%)' };
+  const corner = document.getElementById('themeCorner');
+  corner.innerHTML = Object.keys(DOTS).map(id => '<button class="bs-theme-dot" style="background:'+DOTS[id]+'" title="'+id+'" onclick="BisiroShell.setTheme(\''+id+'\')"></button>').join('');
+})();
+
+function buildStepIndicator() {
+  const el = document.getElementById('stepIndicator');
+  let html = '';
+  for (let i = 1; i <= STEPS; i++) {
+    if (i > 1) html += '<div class="step-line' + (i <= currentStep ? ' done' : '') + '"></div>';
+    const cls = i < currentStep ? 'done' : i === currentStep ? 'active' : 'pending';
+    html += '<div class="step-dot ' + cls + '">' + (i < currentStep ? '✓' : i) + '</div>';
+  }
+  el.innerHTML = html;
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('step' + n);
+  if (el) el.classList.add('active');
+  buildStepIndicator();
+}
+
+function nextStep() {
+  if (currentStep === 1) {
+    if (!document.getElementById('w_business_name').value.trim()) { alert('Please enter your business name.'); return; }
+    if (!document.getElementById('w_what_you_sell').value.trim()) { alert('Please describe what you sell.'); return; }
+  }
+  if (currentStep < STEPS) { currentStep++; showStep(currentStep); }
+}
+
+function prevStep() {
+  if (currentStep > 1) { currentStep--; showStep(currentStep); }
+}
+
+async function generatePrompt() {
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  document.getElementById('errorMsg').style.display = 'none';
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('stepGenerating').classList.add('active');
+
+  // Fake progress bar
+  let pct = 0;
+  const timer = setInterval(() => {
+    pct = Math.min(pct + Math.random() * 8, 88);
+    document.getElementById('genBar').style.width = pct + '%';
+  }, 500);
+
+  try {
+    const body = {
+      user_id: USER_ID,
+      business_name:    document.getElementById('w_business_name').value.trim(),
+      what_you_sell:    document.getElementById('w_what_you_sell').value.trim(),
+      product_catalog:  document.getElementById('w_product_catalog').value.trim() || undefined,
+      variants:         document.getElementById('w_variants').value.trim() || undefined,
+      stock_rules:      document.getElementById('w_stock_rules').value.trim() || undefined,
+      payment_delivery: document.getElementById('w_payment_delivery').value.trim() || undefined,
+      return_policy:    document.getElementById('w_return_policy').value.trim() || undefined,
+      business_hours:   document.getElementById('w_business_hours').value.trim() || undefined,
+      typical_customers:document.getElementById('w_typical_customers').value.trim() || undefined,
+      tone:             document.getElementById('w_tone').value,
+      languages:        document.getElementById('w_languages').value,
+      never_say:        document.getElementById('w_never_say').value.trim() || undefined,
+      escalation_behavior: document.getElementById('w_escalation').value.trim() || undefined,
+      sample_messages:  document.getElementById('w_sample_messages').value.trim() || undefined,
+    };
+
+    const r = await fetch('/api/wizard/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r => r.json());
+
+    clearInterval(timer);
+    document.getElementById('genBar').style.width = '100%';
+
+    if (r.error) throw new Error(r.error);
+    generatedPromptId = r.agent_config_id;
+    generatedPrompt = r.system_prompt;
+
+    setTimeout(() => {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById('stepDone').classList.add('active');
+      document.getElementById('resultPrompt').value = generatedPrompt;
+      document.getElementById('stepIndicator').style.display = 'none';
+    }, 500);
+
+  } catch(e) {
+    clearInterval(timer);
+    currentStep = STEPS;
+    showStep(currentStep);
+    btn.disabled = false;
+    document.getElementById('errorMsg').style.display = 'block';
+    document.getElementById('errorMsg').textContent = 'Generation failed: ' + e.message + '. Please try again.';
+  }
+}
+
+async function testPreview() {
+  const msg = document.getElementById('testMsgInput').value.trim();
+  if (!msg || !generatedPrompt) return;
+  const out = document.getElementById('testOut');
+  out.style.display = 'block';
+  out.innerHTML = '<span style="color:var(--text-faint);">Thinking…</span>';
+  try {
+    const r = await fetch('/api/wizard/preview', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ system_prompt: generatedPrompt, sample_message: msg })
+    }).then(r => r.json());
+    out.innerHTML = '<div class="bs-label" style="margin-bottom:6px;">AI reply</div><div>' + (r.reply||r.error||'No reply') + '</div>'
+      + (r.status ? '<div style="margin-top:8px;"><span class="bs-status bs-status-' + (r.status==='spam'?'red':r.status==='closing'?'blue':'green') + '">' + r.status + '</span></div>' : '');
+  } catch(e) {
+    out.innerHTML = '<span style="color:#d9534f;">Error: ' + e.message + '</span>';
+  }
+}
+
+buildStepIndicator();
+</script>
+</body>
+</html>

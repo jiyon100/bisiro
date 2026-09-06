@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "PowerShell(winget install OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); winget install PostgreSQL.PostgreSQL.17 --source winget --silent --accept-package-agreements --accept-source-agreements 2>&1)",
+      "PowerShell($pgbin = \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\"; & \"$pgbin\\\\pg_ctl.exe\" status -D \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\data\" 2>&1)",
+      "PowerShell(Get-Content \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\data\\\\pg_hba.conf\" 2>$null | Select-String -NotMatch \"^#\" | Where-Object { $_.ToString\\(\\).Trim\\(\\) -ne \"\" })",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(node scripts/migrate.js)",
+      "PowerShell(cd D:\\\\BISIRO; Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Seconds 1; Start-Job -ScriptBlock { & \"C:\\\\Program Files\\\\nodejs\\\\node.exe\" D:\\\\BISIRO\\\\src\\\\server.js } | Out-Null; Start-Sleep -Seconds 3; Invoke-RestMethod http://localhost:3000/health)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "PowerShell($env:PATH = $env:PATH + \";C:\\\\Program Files\\\\nodejs\"; Set-Location D:\\\\BISIRO; node scripts/migrate.js 2>&1 | Select-Object -Last 20)",
+      "PowerShell($session = New-Object Microsoft.PowerShell.Commands.WebRequestSession; $login = Invoke-RestMethod -Uri \"http://localhost:3000/api/admin/login\" -Method POST -ContentType \"application/json\" -Body '{\"email\":\"admin@bisiro.ph\",\"password\":\"admin123\"}' -SessionVariable sv; Write-Output \"Login: $\\($login | ConvertTo-Json\\)\"; $stats = Invoke-RestMethod -Uri \"http://localhost:3000/api/admin/stats\" -Method GET -WebSession $sv; Write-Output \"Stats: $\\($stats | ConvertTo-Json\\)\")",
+      "PowerShell($sv = $null; $login = Invoke-RestMethod -Uri \"http://localhost:3000/api/admin/login\" -Method POST -ContentType \"application/json\" -Body '{\"email\":\"admin@bisiro.ph\",\"password\":\"admin123\"}' -SessionVariable sv; Write-Output \\($login | ConvertTo-Json\\))",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git rm *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

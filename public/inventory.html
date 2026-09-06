@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bisiro — Inventory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/bisiro.css" />
+  <script src="/bisiro-shell.js"></script>
+</head>
+<body>
+<div id="bisiro-app" data-theme="blue" style="display:flex;min-height:100vh;">
+  <aside id="bisiro-sidebar" class="bisiro-sidebar"></aside>
+  <main class="bisiro-main">
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px;">
+      <div>
+        <h1 class="bs-page-title" style="margin-bottom:6px;">Inventory</h1>
+        <div style="font-size:14px;color:var(--text-dim);">Tag conversations with products your customers ask about.</div>
+      </div>
+      <button class="bs-btn-primary" onclick="openAddModal()">+ Add item</button>
+    </div>
+
+    <!-- Search + filter -->
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
+      <input id="searchInput" class="bs-input" style="flex:1;max-width:320px;" placeholder="Search products…" oninput="renderTable()">
+    </div>
+
+    <!-- Table -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px;" id="itemsTable">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="text-align:left;padding:12px 20px;" class="bs-label">Product</th>
+            <th style="text-align:left;padding:12px 20px;" class="bs-label">Unit</th>
+            <th style="text-align:right;padding:12px 20px;" class="bs-label">Price</th>
+            <th style="text-align:center;padding:12px 20px;" class="bs-label">Stock</th>
+            <th style="text-align:center;padding:12px 20px;" class="bs-label">Status</th>
+            <th style="padding:12px 20px;"></th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody">
+          <tr><td colspan="6" style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="emptyState" style="display:none;text-align:center;padding:48px 24px;">
+      <div style="font-size:28px;margin-bottom:12px;">📦</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px;">No products yet</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:18px;">Add your first product so your AI can answer stock and pricing questions.</div>
+      <button class="bs-btn-primary" onclick="openAddModal()">Add first product</button>
+    </div>
+
+  </main>
+</div>
+
+<!-- Add/Edit modal -->
+<div id="modal" class="bs-modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="bs-modal">
+    <div style="font-size:17px;font-weight:700;margin-bottom:18px;" id="modalTitle">Add product</div>
+    <div style="display:flex;flex-direction:column;gap:13px;">
+      <div>
+        <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Product name *</label>
+        <input id="mName" class="bs-input" placeholder="e.g. Classic Tote Bag">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Price (₱)</label>
+          <input id="mPrice" class="bs-input" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Stock qty</label>
+          <input id="mStock" class="bs-input" type="number" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Description (shown to AI)</label>
+        <textarea id="mDesc" class="bs-input bs-textarea" style="min-height:80px;" placeholder="e.g. Available in S/M/L, colors: black, white, nude"></textarea>
+      </div>
+      <div>
+        <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Variants (optional)</label>
+        <input id="mVariants" class="bs-input" placeholder="e.g. Small, Medium, Large">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap;">
+      <button class="bs-btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="bs-btn-danger" id="deleteBtn" style="display:none;" onclick="deleteItem()">Delete</button>
+      <button class="bs-btn-primary" onclick="saveItem()">Save</button>
+    </div>
+    <div id="modalError" style="display:none;margin-top:10px;font-size:13px;color:#d9534f;"></div>
+  </div>
+</div>
+
+<script>
+const USER_ID = 1;
+let allItems = [];
+let editingId = null;
+
+async function loadItems() {
+  try {
+    const u = await fetch('/api/settings/user?user_id=' + USER_ID).then(r => r.json());
+    BisiroShell.updateUser({ business_name: u.business_name });
+  } catch(_) {}
+
+  try {
+    allItems = await fetch('/api/inventory?user_id=' + USER_ID).then(r => r.json());
+    renderTable();
+  } catch(_) {
+    document.getElementById('itemsBody').innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">Could not load inventory.</td></tr>';
+  }
+}
+
+function renderTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = allItems.filter(i =>
+    !q || (i.product_name||'').toLowerCase().includes(q) || (i.notes||'').toLowerCase().includes(q)
+  );
+
+  const table = document.getElementById('itemsTable');
+  const empty = document.getElementById('emptyState');
+
+  if (!filtered.length && !allItems.length) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  table.style.display = 'table';
+  empty.style.display = 'none';
+
+  if (!filtered.length) {
+    document.getElementById('itemsBody').innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">No items match your search.</td></tr>';
+    return;
+  }
+
+  document.getElementById('itemsBody').innerHTML = filtered.map(item => {
+    const inStock = item.stock_qty == null || item.stock_qty > 0;
+    const statusCls = inStock ? 'bs-status bs-status-green' : 'bs-status bs-status-red';
+    const statusLabel = inStock ? 'In stock' : 'Out of stock';
+    return '<tr class="bs-row-hover" style="border-bottom:1px solid var(--border);">'
+      + '<td style="padding:13px 20px;"><div style="font-size:14px;font-weight:600;">' + (item.product_name||'—') + '</div>'
+      + (item.variant ? '<div style="font-size:12px;color:var(--text-faint);margin-top:2px;">'+item.variant+'</div>' : '') + '</td>'
+      + '<td style="padding:13px 20px;color:var(--text-dim);">' + (item.unit||'pcs') + '</td>'
+      + '<td style="padding:13px 20px;text-align:right;font-family:\'Space Grotesk\',sans-serif;font-weight:600;">' + (item.price_php != null ? '₱'+parseFloat(item.price_php).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—') + '</td>'
+      + '<td style="padding:13px 20px;text-align:center;color:var(--text-dim);">' + (item.stock_qty != null ? item.stock_qty : '∞') + '</td>'
+      + '<td style="padding:13px 20px;text-align:center;"><span class="' + statusCls + '">' + statusLabel + '</span></td>'
+      + '<td style="padding:13px 20px;"><button class="bs-btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="openEditModal('+item.id+')">Edit</button></td>'
+      + '</tr>';
+  }).join('');
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Add product';
+  document.getElementById('mName').value = '';
+  document.getElementById('mPrice').value = '';
+  document.getElementById('mStock').value = '';
+  document.getElementById('mDesc').value = '';
+  document.getElementById('mVariants').value = '';
+  document.getElementById('deleteBtn').style.display = 'none';
+  document.getElementById('modalError').style.display = 'none';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function openEditModal(id) {
+  const item = allItems.find(i => i.id == id);
+  if (!item) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit product';
+  document.getElementById('mName').value = item.product_name || '';
+  document.getElementById('mPrice').value = item.price_php != null ? item.price_php : '';
+  document.getElementById('mStock').value = item.stock_qty != null ? item.stock_qty : '';
+  document.getElementById('mDesc').value = item.notes || '';
+  document.getElementById('mVariants').value = item.variant || '';
+  document.getElementById('deleteBtn').style.display = 'inline-flex';
+  document.getElementById('modalError').style.display = 'none';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+async function saveItem() {
+  const name = document.getElementById('mName').value.trim();
+  if (!name) { showModalError('Product name is required.'); return; }
+
+  const body = {
+    user_id: USER_ID,
+    product_name: name,
+    price_php: document.getElementById('mPrice').value ? parseFloat(document.getElementById('mPrice').value) : null,
+    stock_qty: document.getElementById('mStock').value !== '' ? parseInt(document.getElementById('mStock').value) : null,
+    notes: document.getElementById('mDesc').value.trim() || null,
+    variant: document.getElementById('mVariants').value.trim() || null,
+  };
+
+  try {
+    if (editingId) {
+      await fetch('/api/inventory/' + editingId, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    } else {
+      await fetch('/api/inventory', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    }
+    closeModal();
+    allItems = [];
+    loadItems();
+  } catch(e) { showModalError('Save failed: ' + e.message); }
+}
+
+async function deleteItem() {
+  if (!editingId) return;
+  if (!confirm('Delete this product? This cannot be undone.')) return;
+  try {
+    await fetch('/api/inventory/' + editingId, { method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:USER_ID}) });
+    closeModal();
+    allItems = [];
+    loadItems();
+  } catch(e) { showModalError('Delete failed: ' + e.message); }
+}
+
+function showModalError(msg) {
+  const el = document.getElementById('modalError');
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+BisiroShell.init({ role:'owner', active:'inventory', user:{} });
+loadItems();
+</script>
+</body>
+</html>

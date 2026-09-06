@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bisiro — Payment Successful</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/bisiro.css" />
+  <script src="/bisiro-shell.js"></script>
+</head>
+<body>
+<div id="bisiro-app" data-theme="blue" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+  <div style="max-width:440px;width:100%;text-align:center;">
+
+    <div style="width:64px;height:64px;border-radius:50%;background:rgba(31,157,107,0.15);border:2px solid #1f9d6b;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;">✓</div>
+
+    <h1 class="bs-page-title" style="font-size:26px;margin-bottom:10px;">Payment successful!</h1>
+    <div id="subtitle" style="font-size:14px;color:var(--text-dim);line-height:1.6;margin-bottom:28px;">Loading…</div>
+
+    <div id="balanceBox" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px;margin-bottom:24px;">
+      <div class="bs-label" style="margin-bottom:6px;">New credit balance</div>
+      <div id="newBalance" class="bs-num" style="font-size:36px;">—</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <a href="/dashboard.html" class="bs-btn-primary" style="text-decoration:none;justify-content:center;">Go to Dashboard</a>
+      <a href="/credits.html" class="bs-btn-ghost" style="text-decoration:none;justify-content:center;">View billing history</a>
+    </div>
+
+    <div style="margin-top:20px;font-size:12px;color:var(--text-faint);">
+      It may take a few seconds for your balance to update. If it doesn't appear after a minute, contact support.
+    </div>
+
+  </div>
+</div>
+
+<script>
+const USER_ID = 1;
+const params  = new URLSearchParams(location.search);
+const type    = params.get('type'); // 'topup' or 'setup_fee'
+
+document.getElementById('subtitle').textContent = type === 'setup_fee'
+  ? 'Your one-time setup fee has been received. Your Bisiro account is now active.'
+  : 'Your credits have been added to your account.';
+
+async function loadBalance() {
+  try {
+    const u = await fetch('/api/settings/user?user_id=' + USER_ID).then(r => r.json());
+    const bal = parseFloat(u.credit_balance_php || 0);
+    document.getElementById('balanceBox').style.display = 'block';
+    document.getElementById('newBalance').textContent = '₱' + bal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  } catch(_) {}
+}
+
+// Wait briefly for the webhook to process, then show balance
+setTimeout(loadBalance, 2000);
+
+BisiroShell.init({ role: 'owner', active: 'credits', user: {} });
+</script>
+</body>
+</html>

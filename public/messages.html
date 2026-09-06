@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bisiro — Messages</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/bisiro.css" />
+  <script src="/bisiro-shell.js"></script>
+  <style>
+    .msg-list{width:320px;flex:none;border-right:1px solid var(--border);overflow-y:auto;background:var(--surface);}
+    .msg-list-item{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;}
+    .msg-list-item:hover,.msg-list-item.active{background:var(--surface-2);}
+    .msg-list-item.active{border-left:3px solid var(--accent);}
+    .msg-pane{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg);}
+    .msg-header{padding:16px 22px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:14px;}
+    .msg-body{flex:1;overflow-y:auto;padding:20px 22px;display:flex;flex-direction:column;gap:12px;}
+    .msg-bubble{max-width:75%;padding:11px 14px;border-radius:14px;font-size:14px;line-height:1.55;}
+    .msg-bubble-ai{background:var(--surface);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px;}
+    .msg-bubble-customer{background:var(--accent);color:var(--accent-contrast);align-self:flex-end;border-bottom-right-radius:4px;}
+    .msg-input-bar{padding:14px 22px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:10px;}
+    .filter-btn{font-size:12px;padding:5px 11px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;transition:all .12s;}
+    .filter-btn.active{background:var(--accent);color:var(--accent-contrast);border-color:var(--accent);}
+    @media(max-width:700px){.msg-list{width:100%;border-right:none;}.msg-pane{display:none;}}
+  </style>
+</head>
+<body>
+<div id="bisiro-app" data-theme="blue" style="display:flex;min-height:100vh;">
+  <aside id="bisiro-sidebar" class="bisiro-sidebar"></aside>
+  <main class="bisiro-main" style="padding:0;display:flex;flex-direction:column;overflow:hidden;height:100vh;">
+
+    <!-- Top bar -->
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);background:var(--surface);flex:none;">
+      <h1 class="bs-page-title" style="font-size:22px;margin:0 0 12px;">Messages</h1>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button class="filter-btn active" onclick="setFilter(this,'all')">All</button>
+        <button class="filter-btn" onclick="setFilter(this,'pending')">Needs attention</button>
+        <button class="filter-btn" onclick="setFilter(this,'automated')">Automated</button>
+        <button class="filter-btn" onclick="setFilter(this,'paused')">You're handling</button>
+        <input id="searchInput" class="bs-input" style="margin-left:auto;width:200px;padding:7px 11px;" placeholder="Search conversations…" oninput="searchConvs(this.value)">
+      </div>
+    </div>
+
+    <!-- Body split -->
+    <div style="display:flex;flex:1;min-height:0;">
+
+      <!-- Conv list -->
+      <div class="msg-list" id="convList">
+        <div style="padding:20px;text-align:center;font-size:13px;color:var(--text-faint);">Loading…</div>
+      </div>
+
+      <!-- Message pane -->
+      <div class="msg-pane" id="msgPane">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+          <div style="text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">💬</div>
+            <div style="font-size:14px;color:var(--text-faint);">Select a conversation to view messages</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+<script>
+const USER_ID = 1;
+let allConvs = [];
+let activeConvId = null;
+let currentFilter = 'all';
+
+function timeAgo(ts) {
+  if (!ts) return '';
+  const d = Math.floor((Date.now() - new Date(ts)) / 1000);
+  if (d < 60)    return 'now';
+  if (d < 3600)  return Math.floor(d/60) + 'm';
+  if (d < 86400) return Math.floor(d/3600) + 'h';
+  return Math.floor(d/86400) + 'd';
+}
+
+function convStatus(c) {
+  if (c.ai_paused && c.pause_type === 'pending') return { label:'Follow-up', cls:'bs-status bs-status-amber' };
+  if (c.status === 'closing') return { label:'Closing', cls:'bs-status bs-status-blue' };
+  if (!c.ai_paused) return { label:'Automated', cls:'bs-status bs-status-green' };
+  return { label:'You', cls:'bs-status bs-status-gray' };
+}
+
+function matchesFilter(c) {
+  if (currentFilter === 'all') return true;
+  if (currentFilter === 'pending') return c.status === 'closing' || (c.ai_paused && c.pause_type === 'pending');
+  if (currentFilter === 'automated') return !c.ai_paused;
+  if (currentFilter === 'paused') return c.ai_paused;
+  return true;
+}
+
+function setFilter(btn, f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList(allConvs);
+}
+
+function searchConvs(q) {
+  const filtered = allConvs.filter(c => (c.customer_name||c.customer_psid||'').toLowerCase().includes(q.toLowerCase()) || (c.last_message||'').toLowerCase().includes(q.toLowerCase()));
+  renderList(filtered);
+}
+
+function renderList(convs) {
+  const list = convs.filter(matchesFilter);
+  const el = document.getElementById('convList');
+  if (!list.length) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:var(--text-faint);">No conversations found.</div>';
+    return;
+  }
+  el.innerHTML = list.map(c => {
+    const si = convStatus(c);
+    const initials = (c.customer_name||'?')[0].toUpperCase();
+    const isActive = c.id === activeConvId;
+    return '<div class="msg-list-item'+(isActive?' active':'')+'" onclick="openConv('+c.id+')">'
+      +'<div style="display:flex;align-items:flex-start;gap:10px;">'
+      +'<div style="width:36px;height:36px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-dim);flex:none;">'+initials+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">'
+      +'<span style="font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(c.customer_name||c.customer_psid||'Customer')+'</span>'
+      +'<span style="font-size:11px;color:var(--text-faint);flex:none;">'+timeAgo(c.last_message_at)+'</span>'
+      +'</div>'
+      +'<div style="font-size:12.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;">'+(c.last_message||'—')+'</div>'
+      +'<span class="'+si.cls+'" style="margin-top:5px;display:inline-block;">'+si.label+'</span>'
+      +'</div></div></div>';
+  }).join('');
+}
+
+async function openConv(id) {
+  activeConvId = id;
+  renderList(allConvs);
+
+  const pane = document.getElementById('msgPane');
+  pane.innerHTML = '<div style="flex:1;display:flex;align-items:center;justify-content:center;"><div style="font-size:13px;color:var(--text-faint);">Loading…</div></div>';
+
+  try {
+    const data = await fetch('/api/conversations/' + id + '?user_id=' + USER_ID).then(r => r.json());
+    const msgs = data.messages || [];
+    const conv = data.conversation || allConvs.find(c => c.id == id) || {};
+    renderMsgPane(conv, msgs);
+  } catch(e) {
+    pane.innerHTML = '<div style="padding:20px;color:#d9534f;font-size:13px;">Failed to load messages.</div>';
+  }
+
+  // Check URL param
+  const url = new URL(location.href);
+  url.searchParams.set('conv', id);
+  history.replaceState(null, '', url);
+}
+
+function renderMsgPane(conv, msgs) {
+  const si = convStatus(conv);
+  const initials = (conv.customer_name||'?')[0].toUpperCase();
+
+  const pane = document.getElementById('msgPane');
+  pane.innerHTML = `
+    <div class="msg-header">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--text-dim);flex:none;">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:15px;font-weight:600;">${conv.customer_name||conv.customer_psid||'Customer'}</div>
+        <div style="font-size:12px;color:var(--text-faint);">Messenger · ${conv.page_name||''}</div>
+      </div>
+      <span class="${si.cls}">${si.label}</span>
+      <div id="pauseBtn"></div>
+    </div>
+    <div class="msg-body" id="msgBody"></div>
+    <div class="msg-input-bar" id="msgInputBar"></div>
+  `;
+
+  // Messages
+  const body = document.getElementById('msgBody');
+  if (!msgs.length) {
+    body.innerHTML = '<div style="text-align:center;font-size:13px;color:var(--text-faint);">No messages yet.</div>';
+  } else {
+    body.innerHTML = msgs.map(m => {
+      const isCustomer = m.sender === 'customer';
+      const cls = isCustomer ? 'msg-bubble-customer' : 'msg-bubble-ai';
+      const label = isCustomer ? '' : '<div style="font-size:10.5px;color:var(--text-faint);margin-bottom:4px;font-family:\'IBM Plex Mono\',monospace;letter-spacing:0.08em;">AI · BISIRO</div>';
+      return '<div style="display:flex;flex-direction:column;align-items:'+(isCustomer?'flex-end':'flex-start')+'">'
+        + label
+        + '<div class="msg-bubble '+cls+'">' + (m.content||'') + '</div>'
+        + '<div style="font-size:11px;color:var(--text-faint);margin-top:4px;">' + timeAgo(m.sent_at) + '</div>'
+        + '</div>';
+    }).join('');
+    body.scrollTop = 999999;
+  }
+
+  // Pause / takeover controls
+  const pauseBtn = document.getElementById('pauseBtn');
+  if (conv.ai_paused) {
+    pauseBtn.innerHTML = '<button class="bs-btn-ghost" onclick="resumeAI(' + conv.id + ')">Resume AI</button>';
+  } else {
+    pauseBtn.innerHTML = '<button class="bs-btn-ghost" onclick="pauseAI(' + conv.id + ')">Take over</button>';
+  }
+
+  // Input bar (only visible when you're handling)
+  const inputBar = document.getElementById('msgInputBar');
+  if (conv.ai_paused) {
+    inputBar.innerHTML = '<input class="bs-input" id="manualReply" placeholder="Type a reply…" style="flex:1;" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){sendReply('+conv.id+');event.preventDefault();}">'
+      + '<button class="bs-btn-primary" onclick="sendReply(' + conv.id + ')">Send</button>';
+  } else {
+    inputBar.innerHTML = '<div style="flex:1;font-size:13px;color:var(--text-faint);display:flex;align-items:center;">AI is handling this conversation. <button class="bs-btn-ghost" style="margin-left:10px;" onclick="pauseAI('+conv.id+')">Take over</button></div>';
+  }
+}
+
+async function pauseAI(id) {
+  try {
+    await fetch('/api/conversations/' + id + '/take-over', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:USER_ID,pause_type:'complete'}) });
+    await loadConvs();
+    openConv(id);
+  } catch(e) { alert('Failed to pause: ' + e.message); }
+}
+
+async function resumeAI(id) {
+  try {
+    await fetch('/api/conversations/' + id + '/resume-ai', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:USER_ID}) });
+    await loadConvs();
+    openConv(id);
+  } catch(e) { alert('Failed to resume: ' + e.message); }
+}
+
+async function sendReply(id) {
+  const input = document.getElementById('manualReply');
+  const content = input.value.trim();
+  if (!content) return;
+  input.value = '';
+  try {
+    await fetch('/api/conversations/' + id + '/manual-reply', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:USER_ID, content}) });
+    openConv(id);
+  } catch(e) { alert('Failed to send: ' + e.message); }
+}
+
+async function loadConvs() {
+  try {
+    allConvs = await fetch('/api/conversations?user_id=' + USER_ID + '&filter=all').then(r => r.json());
+    renderList(allConvs);
+    BisiroShell.updateBadge('messages', allConvs.filter(c => c.status === 'closing' || (c.ai_paused && c.pause_type === 'pending')).length || null);
+  } catch(_) {
+    document.getElementById('convList').innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:var(--text-faint);">Could not load conversations.</div>';
+  }
+}
+
+async function init() {
+  try {
+    const u = await fetch('/api/settings/user?user_id=' + USER_ID).then(r => r.json());
+    BisiroShell.updateUser({ business_name: u.business_name });
+  } catch(_) {}
+
+  await loadConvs();
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('conv')) openConv(parseInt(params.get('conv')));
+}
+
+BisiroShell.init({ role:'owner', active:'messages', user:{} });
+init();
+</script>
+</body>
+</html>
