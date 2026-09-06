@@ -12,3 +12,7 @@ build/
 # Generated / temp files
 server-out.txt
 *.zip
+
+# Design mockup files (local only)
+*.dc
+server-err.txt
