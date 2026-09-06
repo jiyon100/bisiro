@@ -7,165 +7,274 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/bisiro.css" />
-  <script src="/bisiro-shell.js"></script>
+  <style>
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;}
+    body{background:#070d1c;}
+    :root,[data-theme="light"]{
+      --bg:#f6f7f9;--surface:#ffffff;--surface-2:#eef1f6;--border:rgba(15,22,38,0.09);
+      --border-strong:rgba(15,22,38,0.16);--text:#0d1117;--text-dim:#525c6b;--text-faint:#8a93a3;
+      --accent:#2f6bff;--accent-2:#6f9bff;--accent-contrast:#ffffff;
+      --glow:rgba(47,107,255,0.20);--shadow:rgba(20,30,55,0.10);
+    }
+    [data-theme="dark"]{
+      --bg:#0a0d13;--surface:#11151d;--surface-2:#161c27;--border:rgba(255,255,255,0.08);
+      --border-strong:rgba(255,255,255,0.16);--text:#e7eaf0;--text-dim:#9aa3b2;--text-faint:#6b7382;
+      --accent:#5b8cff;--accent-2:#3f6bff;--accent-contrast:#06101f;
+      --glow:rgba(91,140,255,0.22);--shadow:rgba(0,0,0,0.5);
+    }
+    [data-theme="blue"]{
+      --bg:#070d1c;--surface:#0e1730;--surface-2:#152141;--border:rgba(120,160,255,0.14);
+      --border-strong:rgba(120,160,255,0.28);--text:#e3eaff;--text-dim:#93a6d4;--text-faint:#6076a8;
+      --accent:#4d8bff;--accent-2:#2f6bff;--accent-contrast:#04101f;
+      --glow:rgba(77,139,255,0.28);--shadow:rgba(0,6,22,0.6);
+    }
+    [data-theme="green"]{
+      --bg:#07130f;--surface:#0d1d18;--surface-2:#122620;--border:rgba(120,255,200,0.12);
+      --border-strong:rgba(120,255,200,0.26);--text:#dff3ea;--text-dim:#8fb6a8;--text-faint:#5f8678;
+      --accent:#2dd4a7;--accent-2:#10b981;--accent-contrast:#04140e;
+      --glow:rgba(45,212,167,0.24);--shadow:rgba(0,10,6,0.55);
+    }
+    [data-theme="warm"]{
+      --bg:#f5efe2;--surface:#fffdf8;--surface-2:#efe6d4;--border:rgba(90,66,30,0.13);
+      --border-strong:rgba(90,66,30,0.24);--text:#2a2218;--text-dim:#6c5d47;--text-faint:#9a8a70;
+      --accent:#cf7a1c;--accent-2:#e8a23e;--accent-contrast:#fffaf2;
+      --glow:rgba(207,122,28,0.20);--shadow:rgba(70,45,10,0.12);
+    }
+    .fade{animation:fade .4s ease;}
+    @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  </style>
 </head>
 <body>
-<div id="bisiro-app" data-theme="blue" style="min-height:100vh;display:flex;flex-direction:column;">
+<div id="app" data-theme="blue" style="min-height:100vh;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;">
 
-  <!-- Small header -->
-  <header style="padding:16px 28px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:14px;flex:none;">
-    <a href="/dashboard.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;">
-      <div style="width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:var(--accent-contrast);">B</div>
-      <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;">Bisiro</span>
-    </a>
-    <div style="flex:1;"></div>
-    <a href="/dashboard.html" class="bs-btn-ghost" style="text-decoration:none;font-size:13px;">← Dashboard</a>
+  <!-- HEADER -->
+  <header style="border-bottom:1px solid var(--border);background:var(--surface);">
+    <div style="max-width:900px;margin:0 auto;padding:16px 28px;display:flex;align-items:center;gap:14px;">
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;letter-spacing:-0.01em;">Bisiro</div>
+      <div style="flex:1;"></div>
+      <div id="themePills" style="display:flex;align-items:center;gap:6px;padding:5px;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;" role="group" aria-label="Color theme"></div>
+      <a href="/dashboard.html" style="flex:none;color:var(--accent);text-decoration:none;font-size:13.5px;font-weight:500;margin-left:6px;">← Dashboard</a>
+    </div>
   </header>
 
-  <div style="flex:1;display:flex;align-items:flex-start;justify-content:center;padding:48px 20px;">
-    <div style="width:100%;max-width:520px;">
+  <!-- BODY -->
+  <div style="flex:1;display:flex;justify-content:center;padding:56px 24px 72px;">
+    <div style="width:100%;max-width:560px;">
 
-      <div style="text-align:center;margin-bottom:32px;">
-        <div style="font-size:40px;margin-bottom:14px;">📘</div>
-        <h1 class="bs-page-title" style="font-size:26px;margin-bottom:8px;">Connect your Facebook Page</h1>
-        <div style="font-size:14px;color:var(--text-dim);line-height:1.6;">Link your Facebook Business Page so Bisiro can auto-reply to comments and Messenger DMs on your behalf.</div>
-      </div>
-
-      <!-- Steps -->
-      <div id="connectFlow">
-
-        <!-- Step 1: OAuth -->
-        <div id="oauthStep" class="bs-card-lg" style="border-radius:18px;margin-bottom:16px;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-            <div id="step1Badge" style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-contrast);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'IBM Plex Mono',monospace;flex:none;">1</div>
-            <div style="font-size:15px;font-weight:600;">Log in with Facebook</div>
-          </div>
-          <div style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">We'll ask for permission to manage your Page's messages and comments. You stay in full control — you can disconnect anytime.</div>
-          <button id="fbOauthBtn" class="bs-btn-primary" onclick="startOAuth()" style="width:100%;justify-content:center;gap:10px;">
-            <span style="font-size:16px;">f</span> Continue with Facebook
-          </button>
-          <div id="oauthStatus" style="display:none;margin-top:12px;padding:11px 14px;border-radius:10px;font-size:13px;"></div>
+      <!-- Intro -->
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;margin:0 auto;border-radius:16px;background:color-mix(in srgb,var(--accent) 14%,transparent);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;color:var(--accent);">B</span>
         </div>
-
-        <!-- Step 2: Choose page -->
-        <div id="choosePageStep" class="bs-card-lg" style="border-radius:18px;margin-bottom:16px;opacity:0.45;pointer-events:none;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-            <div style="width:26px;height:26px;border-radius:50%;background:var(--surface-2);border:1.5px solid var(--border);color:var(--text-faint);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'IBM Plex Mono',monospace;flex:none;">2</div>
-            <div style="font-size:15px;font-weight:600;">Choose your Page</div>
-          </div>
-          <div id="pageChoiceList" style="display:flex;flex-direction:column;gap:10px;">
-            <div style="font-size:13px;color:var(--text-faint);">Complete step 1 first.</div>
-          </div>
-        </div>
-
-        <!-- Step 3: Confirm -->
-        <div id="confirmStep" class="bs-card-lg" style="border-radius:18px;opacity:0.45;pointer-events:none;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-            <div style="width:26px;height:26px;border-radius:50%;background:var(--surface-2);border:1.5px solid var(--border);color:var(--text-faint);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'IBM Plex Mono',monospace;flex:none;">3</div>
-            <div style="font-size:15px;font-weight:600;">Confirm &amp; activate</div>
-          </div>
-          <div style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">Review the page you're connecting, then activate automation.</div>
-          <div id="confirmPageName" style="padding:14px;background:var(--surface-2);border-radius:10px;font-size:14px;font-weight:600;margin-bottom:14px;display:none;">—</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button id="activateBtn" class="bs-btn-primary" onclick="activatePage()" style="display:none;">Activate automation</button>
-          </div>
-          <div id="activateStatus" style="display:none;margin-top:12px;font-size:13px;"></div>
-        </div>
-
+        <h1 style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;letter-spacing:-0.02em;margin:22px 0 0;">Connect your Facebook Page</h1>
+        <p style="font-size:15px;line-height:1.6;color:var(--text-dim);margin:12px auto 0;max-width:420px;">Link your Facebook Business Page so Bisiro can auto-reply to comments and Messenger DMs on your behalf.</p>
       </div>
 
-      <!-- Already connected -->
-      <div id="alreadyConnected" style="display:none;margin-top:20px;">
-        <div class="bs-section-title">Already connected pages</div>
-        <div id="connectedList" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;"></div>
-      </div>
+      <!-- Progress -->
+      <div id="progress" style="display:flex;align-items:center;gap:0;margin:36px 0 30px;"></div>
 
-      <div style="text-align:center;margin-top:24px;font-size:12.5px;color:var(--text-faint);">
-        Bisiro only reads messages you receive and sends replies on your behalf. We never post or like content without your setup.
-      </div>
+      <!-- Step cards -->
+      <div id="steps" style="display:flex;flex-direction:column;gap:14px;"></div>
 
+      <!-- Success -->
+      <div id="success" style="display:none;margin-top:14px;"></div>
+
+      <p style="text-align:center;font-size:12.5px;color:var(--text-faint);margin:28px auto 0;max-width:420px;line-height:1.55;">Bisiro only reads messages you receive and sends replies on your behalf. We never post or like content without your setup.</p>
     </div>
   </div>
 </div>
 
 <script>
-let USER_ID = null;
+// ── State ────────────────────────────────────────────────────────────────
+let S = { step: 1, activated: false, pages: [], selId: null, err: null };
 
-// Auth gate
+// ── Theme ────────────────────────────────────────────────────────────────
+const DOTS = {
+  light:'linear-gradient(135deg,#f6f7f9 50%,#2f6bff 50%)',
+  dark: 'linear-gradient(135deg,#0a0d13 50%,#5b8cff 50%)',
+  blue: 'linear-gradient(135deg,#0e1730 50%,#4d8bff 50%)',
+  green:'linear-gradient(135deg,#0d1d18 50%,#2dd4a7 50%)',
+  warm: 'linear-gradient(135deg,#fffdf8 50%,#cf7a1c 50%)',
+};
+function applyTheme(id) {
+  document.getElementById('app').setAttribute('data-theme', id);
+  try { localStorage.setItem('bisiro-theme', id); } catch(_) {}
+  document.getElementById('themePills').innerHTML = Object.keys(DOTS).map(t => `
+    <button type="button" title="${t}" onclick="applyTheme('${t}')" style="position:relative;width:22px;height:22px;border-radius:999px;border:1px solid var(--border-strong);cursor:pointer;padding:0;background:${DOTS[t]};transition:transform .18s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform='scale(1)'">
+      ${id===t ? '<span style="position:absolute;inset:-4px;border-radius:999px;border:2px solid var(--accent);pointer-events:none;"></span>' : ''}
+    </button>`).join('');
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+function ini(name) {
+  return (name||'?').replace(/[^a-zA-Z ]/g,'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
+}
+
+// ── Render ───────────────────────────────────────────────────────────────
+function render() {
+  const {step, activated, pages, selId, err} = S;
+
+  // Progress bar
+  document.getElementById('progress').innerHTML = [1,2,3].map(n => {
+    const done   = step > n || activated;
+    const active = step === n && !activated;
+    return `<div style="display:flex;align-items:center;flex:${n<3?'1':'0 0 auto'};">
+      <div style="width:26px;height:26px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;
+        background:${done?'#1f9d6b':active?'var(--accent)':'transparent'};
+        color:${done?'#fff':active?'var(--accent-contrast)':'var(--text-faint)'};
+        border:1.5px solid ${done?'#1f9d6b':active?'var(--accent)':'var(--border-strong)'};">${done?'✓':n}</div>
+      ${n<3?`<div style="flex:1;height:2px;margin:0 8px;background:${step>n||activated?'#1f9d6b':'var(--border)'};"></div>`:''}
+    </div>`;
+  }).join('');
+
+  // Step definitions
+  const DEFS = [
+    {n:1, title:'Log in with Facebook',   key:'login',  body:"We'll ask for permission to manage your Page's messages and comments. You stay in full control — you can disconnect anytime.", doneNote:'Connected to Facebook.', lockedNote:null},
+    {n:2, title:'Choose your Page',       key:'choose', body:'Pick the Business Page you want Bisiro to manage. You can add more pages later.',                                             doneNote:'Page selected.',          lockedNote:'Complete step 1 first.'},
+    {n:3, title:'Confirm & activate',     key:'confirm',body:"Review the page you're connecting, then activate automation.",                                                               doneNote:null,                      lockedNote:'Complete step 2 first.'},
+  ];
+
+  document.getElementById('steps').innerHTML = DEFS.map(d => {
+    const isActive = step === d.n && !activated;
+    const isDone   = step > d.n || (d.n === 3 && activated);
+    const isLocked = step < d.n && !activated;
+    const numBg    = isDone ? '#1f9d6b' : isActive ? 'var(--accent)' : 'transparent';
+    const numColor = isDone ? '#fff'    : isActive ? 'var(--accent-contrast)' : 'var(--text-faint)';
+    const numBord  = isDone ? '#1f9d6b' : isActive ? 'var(--accent)' : 'var(--border-strong)';
+
+    let content = '';
+    if (isActive) {
+      if (d.key === 'login') {
+        content = `
+          <p style="font-size:14px;line-height:1.6;color:var(--text-dim);margin:0;">${d.body}</p>
+          <button id="fbBtn" type="button" onclick="startOAuth()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;background:#1877f2;color:#fff;border:none;border-radius:11px;padding:14px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:transform .18s ease,filter .18s ease;" onmouseover="this.style.transform='translateY(-2px)';this.style.filter='brightness(1.06)'" onmouseout="this.style.transform='';this.style.filter=''">
+            <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;">f</span> Continue with Facebook
+          </button>
+          ${err ? `<div style="margin-top:12px;padding:11px 14px;border-radius:10px;background:rgba(217,83,79,0.1);color:#d9534f;font-size:13px;">${err}</div>` : ''}`;
+      } else if (d.key === 'choose') {
+        const list = pages.map(p => {
+          const sel = selId === p.page_id;
+          return `<button type="button" onclick="selectPage('${p.page_id}')" style="display:flex;align-items:center;gap:13px;text-align:left;width:100%;background:${sel?'color-mix(in srgb,var(--accent) 8%,var(--surface))':'var(--surface)'};border:1.5px solid ${sel?'var(--accent)':'var(--border)'};border-radius:12px;padding:13px 15px;cursor:pointer;font-family:inherit;transition:border-color .15s,background .15s;">
+            <div style="width:40px;height:40px;border-radius:10px;flex:none;background:color-mix(in srgb,var(--accent) 13%,transparent);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;color:var(--accent);">${ini(p.page_name)}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14.5px;font-weight:600;color:var(--text);">${p.page_name||'Unnamed page'}</div>
+              <div style="font-size:12.5px;color:var(--text-faint);">ID: ${p.page_id}</div>
+            </div>
+            <div style="width:20px;height:20px;border-radius:50%;flex:none;border:2px solid ${sel?'var(--accent)':'var(--border-strong)'};display:flex;align-items:center;justify-content:center;">
+              ${sel?'<span style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></span>':''}
+            </div>
+          </button>`;
+        }).join('');
+        content = `
+          <p style="font-size:14px;line-height:1.6;color:var(--text-dim);margin:0 0 16px;">${d.body}</p>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            ${list || '<div style="font-size:13.5px;color:var(--text-faint);">No pages found. Make sure you are an admin of the page on Facebook.</div>'}
+          </div>
+          ${pages.length ? `<button type="button" onclick="confirmPage()" ${!selId?'disabled':''} style="margin-top:10px;width:100%;background:${selId?'var(--accent)':'var(--surface-2)'};color:${selId?'var(--accent-contrast)':'var(--text-faint)'};border:none;border-radius:11px;padding:13px;font-family:inherit;font-size:15px;font-weight:600;cursor:${selId?'pointer':'not-allowed'};transition:transform .18s ease;">Continue</button>` : ''}`;
+      } else if (d.key === 'confirm') {
+        const pg = pages.find(p => p.page_id === selId) || pages[0];
+        if (pg) {
+          const checks = ['Auto-reply to Messenger DMs and post comments','Replies in English or Taglish, matched to each customer','You can pause or take over any conversation anytime'];
+          content = `
+            <p style="font-size:14px;line-height:1.6;color:var(--text-dim);margin:0 0 16px;">${d.body}</p>
+            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:16px;">
+              <div style="display:flex;align-items:center;gap:13px;">
+                <div style="width:44px;height:44px;border-radius:11px;flex:none;background:color-mix(in srgb,var(--accent) 13%,transparent);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;color:var(--accent);">${ini(pg.page_name)}</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:15px;font-weight:600;">${pg.page_name}</div>
+                  <div style="font-size:12.5px;color:var(--text-faint);">ID: ${pg.page_id}</div>
+                </div>
+                <button type="button" onclick="setState({step:2})" style="flex:none;font-family:inherit;font-size:12.5px;font-weight:500;color:var(--accent);background:transparent;border:none;cursor:pointer;">Change</button>
+              </div>
+              <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:14px;display:flex;flex-direction:column;gap:9px;">
+                ${checks.map(ck=>`<div style="display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:var(--text-dim);"><span style="flex:none;color:#1f9d6b;font-weight:600;margin-top:1px;">✓</span>${ck}</div>`).join('')}
+              </div>
+            </div>
+            <button id="activateBtn" type="button" onclick="activate()" style="width:100%;margin-top:14px;background:var(--accent);color:var(--accent-contrast);border:none;border-radius:11px;padding:14px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 8px 22px -10px var(--glow);transition:transform .18s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">Activate automation</button>`;
+        }
+      }
+    }
+
+    return `<div style="background:var(--surface);border:1px solid ${isActive?'var(--accent)':'var(--border)'};border-radius:16px;padding:22px 24px;opacity:${isLocked?'0.6':'1'};transition:border-color .2s,opacity .2s;">
+      <div style="display:flex;align-items:center;gap:13px;">
+        <div style="width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;background:${numBg};color:${numColor};border:1.5px solid ${numBord};">${isDone?'✓':d.n}</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;letter-spacing:-0.01em;color:${(isActive||isDone)?'var(--text)':'var(--text-faint)'};">${d.title}</div>
+      </div>
+      ${isActive ? `<div class="fade" style="padding-left:43px;margin-top:12px;">${content}</div>` : ''}
+      ${isDone && d.doneNote ? `<p style="padding-left:43px;margin:10px 0 0;font-size:13.5px;color:#1f9d6b;">${d.doneNote}</p>` : ''}
+      ${isLocked && d.lockedNote ? `<p style="padding-left:43px;margin:10px 0 0;font-size:13.5px;color:var(--text-faint);">${d.lockedNote}</p>` : ''}
+    </div>`;
+  }).join('');
+
+  // Success card
+  const pg = pages.find(p => p.page_id === selId) || pages[0];
+  const succ = document.getElementById('success');
+  if (activated && pg) {
+    succ.style.display = 'block';
+    succ.innerHTML = `<div class="fade" style="background:color-mix(in srgb,#1f9d6b 8%,var(--surface));border:1px solid rgba(31,157,107,0.4);border-radius:16px;padding:22px 24px;text-align:center;">
+      <div style="width:46px;height:46px;margin:0 auto;border-radius:50%;background:#1f9d6b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;">✓</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;margin-top:12px;">You're live!</div>
+      <p style="font-size:13.5px;color:var(--text-dim);margin:6px auto 0;max-width:340px;line-height:1.55;">${pg.page_name} is now connected. Bisiro is replying to comments and DMs.</p>
+      <a href="/dashboard.html" style="display:inline-block;margin-top:16px;background:var(--accent);color:var(--accent-contrast);text-decoration:none;font-size:14px;font-weight:600;padding:11px 22px;border-radius:10px;">Go to dashboard</a>
+    </div>`;
+  } else {
+    succ.style.display = 'none';
+  }
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────
+function setState(patch) { S = {...S, ...patch}; render(); }
+
+function startOAuth() {
+  const btn = document.getElementById('fbBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirecting to Facebook…'; }
+  window.location.href = '/auth/facebook/start';
+}
+
+function selectPage(id) { setState({ selId: id }); }
+
+function confirmPage() { if (S.selId) setState({ step: 3 }); }
+
+function activate() {
+  const btn = document.getElementById('activateBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Activating…'; }
+  setState({ activated: true });
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
 (async () => {
   try {
     const r = await fetch('/api/user/me');
     if (!r.ok) { window.location.href = '/login.html'; return; }
     const me = await r.json();
     if (!me.is_active) { window.location.href = '/login.html'; return; }
-    USER_ID = me.id;
-    init();
-  } catch { window.location.href = '/login.html'; }
-})();
+  } catch { window.location.href = '/login.html'; return; }
 
-function startOAuth() {
-  // Server handles the full redirect flow — just navigate to the start route
-  window.location.href = '/auth/facebook/start';
-}
+  const theme = localStorage.getItem('bisiro-theme') || 'blue';
+  applyTheme(theme);
+  render();
 
-async function loadConnected() {
-  try {
-    const pages = await fetch('/api/integrations/pages').then(r => r.json());
-    if (!pages.length) return;
-    document.getElementById('alreadyConnected').style.display = 'block';
-    document.getElementById('connectedList').innerHTML = pages.map(p =>
-      '<div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);gap:12px;">'
-      + '<div><div style="font-size:14px;font-weight:600;">' + (p.page_name||p.page_id) + '</div>'
-      + '<div style="font-size:12px;color:var(--text-faint);">ID: ' + p.page_id + '</div></div>'
-      + '<div style="display:flex;align-items:center;gap:10px;">'
-      + '<span class="bs-status bs-status-green">Connected</span>'
-      + '<button class="bs-btn-danger" style="padding:5px 11px;font-size:12px;" onclick="disconnectPage(\''+p.page_id+'\')">Disconnect</button>'
-      + '</div></div>'
-    ).join('');
-  } catch(_) {}
-}
-
-async function disconnectPage(pageId) {
-  if (!confirm('Disconnect this page? AI automation will stop immediately.')) return;
-  try {
-    await fetch('/api/integrations/disconnect-page', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ page_id: pageId })
-    });
-    loadConnected();
-  } catch(e) { alert('Failed: ' + e.message); }
-}
-
-function init() {
   const params = new URLSearchParams(location.search);
-  const connected = params.get('connected');
-  const error     = params.get('error');
 
-  if (connected) {
-    // Came back from successful OAuth — show success banner
-    const status = document.getElementById('oauthStatus');
-    status.style.display = 'block';
-    status.style.background = 'rgba(31,157,107,0.12)';
-    status.style.color = '#1f9d6b';
-    status.textContent = connected + ' page' + (connected > 1 ? 's' : '') + ' connected successfully.';
-    document.getElementById('step1Badge').style.background = '#1f9d6b';
-    document.getElementById('step1Badge').textContent = '✓';
+  if (params.get('error')) {
     history.replaceState(null, '', '/connect-page.html');
+    setState({ err: decodeURIComponent(params.get('error')) });
+    return;
   }
 
-  if (error) {
-    const status = document.getElementById('oauthStatus');
-    status.style.display = 'block';
-    status.style.background = 'rgba(217,83,79,0.1)';
-    status.style.color = '#d9534f';
-    status.textContent = 'Connection failed: ' + decodeURIComponent(error);
+  if (params.get('connected')) {
     history.replaceState(null, '', '/connect-page.html');
+    try {
+      const pages = await fetch('/api/integrations/pages').then(r => r.json());
+      if (pages.length === 1) {
+        setState({ pages, selId: pages[0].page_id, step: 3 });
+      } else if (pages.length > 1) {
+        setState({ pages, step: 2 });
+      }
+    } catch(_) {}
   }
-
-  loadConnected();
-}
+})();
 </script>
 </body>
 </html>
