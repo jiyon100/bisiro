@@ -60,7 +60,7 @@ async function createCheckoutSession({ amountPhp, description, type, userId }) {
               quantity: 1,
             },
           ],
-          payment_method_types: ['gcash', 'maya', 'card', 'dob', '7_eleven', 'cebuana'],
+          payment_method_types: ['gcash', 'card'],
           success_url: `${APP_URL}/payment-success.html?type=${type}`,
           cancel_url:  `${APP_URL}/payment-cancel.html`,
           metadata: {
