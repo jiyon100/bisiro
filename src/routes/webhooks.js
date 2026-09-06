@@ -40,7 +40,7 @@ router.post('/facebook', express.json(), async (req, res) => {
     const pageId = entry.id;
 
     const pageResult = await pool.query(
-      'SELECT id, user_id, page_id, access_token_enc, is_active FROM facebook_pages WHERE page_id = $1',
+      'SELECT id, user_id, page_id, page_access_token_encrypted, is_active FROM facebook_pages WHERE page_id = $1',
       [pageId]
     ).catch(err => { console.error('DB lookup error:', err.message); return { rows: [] }; });
 
@@ -135,7 +135,7 @@ async function handleCommentEvent(value, page) {
 async function generateAndSendReply(conv, page, customerMessage, replyType, recipientId, commentId) {
   // Load agent config for this page's user
   const agentResult = await pool.query(
-    'SELECT id, system_prompt, user_id FROM agent_configs WHERE user_id = $1 AND is_active = true LIMIT 1',
+    'SELECT id, system_prompt, user_id FROM agent_configs WHERE user_id = $1 LIMIT 1',
     [page.user_id]
   );
   if (!agentResult.rows[0]) {
@@ -147,7 +147,7 @@ async function generateAndSendReply(conv, page, customerMessage, replyType, reci
   // Load recent conversation history (last 10 messages)
   const histResult = await pool.query(
     `SELECT sender, content AS text FROM conversation_messages
-     WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 10`,
+     WHERE conversation_id = $1 ORDER BY sent_at DESC LIMIT 10`,
     [conv.id]
   );
   const history = histResult.rows
@@ -193,23 +193,52 @@ async function generateAndSendReply(conv, page, customerMessage, replyType, reci
 }
 
 async function sendFacebookReply({ page, replyType, recipientId, commentId, reply }) {
-  // PLACEHOLDER: real Graph API calls go here.
-  // Decrypt page.access_token_enc using TOKEN_ENCRYPTION_KEY (AES-256-GCM, see facebookAuth.js)
-  // then call the appropriate endpoint.
-  //
-  // DM reply:
-  //   POST https://graph.facebook.com/v19.0/me/messages
-  //   body: { recipient: { id: recipientId }, message: { text: reply } }
-  //   ?access_token=<decrypted>
-  //
-  // Comment reply:
-  //   POST https://graph.facebook.com/v19.0/${commentId}/comments
-  //   body: { message: reply }
-  //   ?access_token=<decrypted>
-  //
-  // On error code 190 → call deactivatePage(page.page_id)
+  const { decrypt } = require('../services/tokenEncryption');
+  let accessToken;
+  try {
+    accessToken = decrypt(page.page_access_token_encrypted);
+  } catch (err) {
+    console.error(`Token decrypt failed for page ${page.page_id}:`, err.message);
+    return;
+  }
 
-  console.log(`[PLACEHOLDER] Would send ${replyType} reply to ${recipientId}: "${reply}"`);
+  try {
+    if (replyType === 'dm') {
+      const res = await fetch(
+        `https://graph.facebook.com/v21.0/me/messages?access_token=${accessToken}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient: { id: recipientId }, message: { text: reply } }),
+        }
+      );
+      const data = await res.json();
+      if (data.error) {
+        console.error(`FB send DM error for page ${page.page_id}:`, data.error.message);
+        if (data.error.code === 190) await deactivatePage(page.page_id);
+      } else {
+        console.log(`DM sent to ${recipientId} on page ${page.page_id}`);
+      }
+    } else if (replyType === 'comment') {
+      const res = await fetch(
+        `https://graph.facebook.com/v21.0/${commentId}/comments?access_token=${accessToken}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: reply }),
+        }
+      );
+      const data = await res.json();
+      if (data.error) {
+        console.error(`FB comment reply error for page ${page.page_id}:`, data.error.message);
+        if (data.error.code === 190) await deactivatePage(page.page_id);
+      } else {
+        console.log(`Comment reply sent on page ${page.page_id}`);
+      }
+    }
+  } catch (err) {
+    console.error(`Network error sending FB reply for page ${page.page_id}:`, err.message);
+  }
 }
 
 async function deductAndLog({ agentConfig, conv, reply, status, costPhp, costUsd, inputTokens, outputTokens }) {
