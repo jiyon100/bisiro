@@ -13,13 +13,13 @@ async function main() {
   const hash = crypto.createHash('sha256').update(password).digest('hex');
 
   await pool.query(
-    `INSERT INTO admin_users (email, password_hash)
-     VALUES ($1, $2)
-     ON CONFLICT (email) DO UPDATE SET password_hash = $2`,
+    `INSERT INTO admin_users (email, password_hash, role)
+     VALUES ($1, $2, 'super_admin')
+     ON CONFLICT (email) DO UPDATE SET password_hash = $2, role = 'super_admin'`,
     [email, hash]
   );
 
-  console.log(`Admin user created/updated: ${email}`);
+  console.log(`Admin user created/updated: ${email} (super_admin)`);
   process.exit(0);
 }
 

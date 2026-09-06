@@ -21,9 +21,10 @@ router.post('/login', async (req, res) => {
   const hash = crypto.createHash('sha256').update(password).digest('hex');
   if (hash !== rows[0].password_hash) return res.status(401).json({ error: 'Invalid credentials' });
 
-  req.session.adminId = rows[0].id;
+  req.session.adminId    = rows[0].id;
   req.session.adminEmail = rows[0].email;
-  res.json({ ok: true, email: rows[0].email });
+  req.session.adminRole  = rows[0].role || 'support';
+  res.json({ ok: true, email: rows[0].email, role: req.session.adminRole });
 });
 
 // POST /api/admin/logout
@@ -34,7 +35,7 @@ router.post('/logout', (req, res) => {
 
 // GET /api/admin/me
 router.get('/me', requireAdmin, (req, res) => {
-  res.json({ email: req.session.adminEmail });
+  res.json({ email: req.session.adminEmail, role: req.session.adminRole || 'support' });
 });
 
 // ── Pricing config ──────────────────────────────────────────────────────────
@@ -256,6 +257,58 @@ router.post('/user/:id/set-active', requireAdmin, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ── Staff management ────────────────────────────────────────────────────────
+
+// GET /api/admin/staff
+router.get('/staff', requireAdmin, async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT id, name, email, role, is_active, created_at FROM admin_users ORDER BY created_at ASC'
+  );
+  res.json(rows);
+});
+
+// POST /api/admin/staff
+router.post('/staff', requireAdmin, async (req, res) => {
+  const { name, email, password, role = 'support' } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+  if (!['super_admin', 'support'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO admin_users (name, email, password_hash, role)
+       VALUES ($1, $2, $3, $4) RETURNING id, name, email, role, is_active, created_at`,
+      [name || null, email, hash, role]
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    if (err.code === '23505') return res.status(400).json({ error: 'Email already in use' });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/admin/staff/:id
+router.patch('/staff/:id', requireAdmin, async (req, res) => {
+  const { role, is_active, name } = req.body;
+  const updates = [];
+  const params  = [];
+  if (role      !== undefined) { params.push(role);       updates.push(`role = $${params.length}`); }
+  if (is_active !== undefined) { params.push(!!is_active); updates.push(`is_active = $${params.length}`); }
+  if (name      !== undefined) { params.push(name);       updates.push(`name = $${params.length}`); }
+  if (!updates.length) return res.status(400).json({ error: 'Nothing to update' });
+  params.push(req.params.id);
+  await pool.query(`UPDATE admin_users SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+  res.json({ ok: true });
+});
+
+// DELETE /api/admin/staff/:id
+router.delete('/staff/:id', requireAdmin, async (req, res) => {
+  if (parseInt(req.params.id) === req.session.adminId) {
+    return res.status(400).json({ error: 'Cannot delete your own account' });
+  }
+  await pool.query('DELETE FROM admin_users WHERE id = $1', [req.params.id]);
+  res.json({ ok: true });
 });
 
 module.exports = router;

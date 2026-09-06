@@ -19,6 +19,21 @@
   </style>
 </head>
 <body>
+<!-- Login overlay -->
+<div id="loginOverlay" style="display:none;position:fixed;inset:0;background:rgba(8,10,20,0.92);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px 36px;max-width:400px;width:90%;box-shadow:0 24px 80px rgba(0,0,0,0.5);">
+    <div style="font-size:11px;letter-spacing:0.12em;color:var(--text-faint);margin-bottom:6px;">BISIRO PLATFORM</div>
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin:0 0 24px;">Admin sign in</h2>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <input id="loginEmail" class="bs-input" type="email" placeholder="Email address" autocomplete="email">
+      <input id="loginPass"  class="bs-input" type="password" placeholder="Password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="bs-btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:16px;" id="loginBtn">Sign in</button>
+    <div id="loginErr" style="display:none;margin-top:12px;font-size:13px;color:#d9534f;text-align:center;"></div>
+  </div>
+</div>
+
 <div id="bisiro-app" data-theme="blue" style="display:flex;min-height:100vh;">
   <aside id="bisiro-sidebar" class="bisiro-sidebar"></aside>
   <main class="bisiro-main">
@@ -36,8 +51,9 @@
       <button class="admin-tab" onclick="switchTab('overview',this)">Overview</button>
       <button class="admin-tab" onclick="switchTab('subscribers',this)">Subscribers</button>
       <button class="admin-tab" onclick="switchTab('payments',this)">Payments</button>
-      <button class="admin-tab" onclick="switchTab('pricing',this)">Pricing</button>
+      <button class="admin-tab admin-super-only" onclick="switchTab('pricing',this)">Pricing</button>
       <button class="admin-tab" onclick="switchTab('replyLogs',this)">Reply logs</button>
+      <button class="admin-tab admin-super-only" onclick="switchTab('staff',this)">Staff</button>
     </div>
 
     <div id="tabContent"></div>
@@ -48,6 +64,58 @@
 <script>
 let currentTab = '';
 let cachedData = {};
+let adminRole  = 'support';
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+
+function showLogin() {
+  const el = document.getElementById('loginOverlay');
+  el.style.display = 'flex';
+}
+
+function hideLogin() {
+  document.getElementById('loginOverlay').style.display = 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const err   = document.getElementById('loginErr');
+  const btn   = document.getElementById('loginBtn');
+  err.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    }).then(r => r.json());
+    if (res.error) throw new Error(res.error);
+    hideLogin();
+    initAfterAuth(res.email, res.role);
+  } catch(e) {
+    err.textContent = e.message || 'Invalid credentials';
+    err.style.display = 'block';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Sign in';
+}
+
+function initAfterAuth(email, role) {
+  adminRole = role || 'support';
+  document.getElementById('adminBadge').textContent = email;
+  // Show/hide super-admin-only tabs
+  document.querySelectorAll('.admin-super-only').forEach(el => {
+    el.style.display = adminRole === 'super_admin' ? '' : 'none';
+  });
+  const tab = new URLSearchParams(location.search).get('tab') || 'overview';
+  const tabNames = ['overview','subscribers','payments','pricing','replyLogs','staff'];
+  const tabIdx = tabNames.indexOf(tab);
+  const tabButtons = document.querySelectorAll('.admin-tab');
+  if (tabButtons[tabIdx >= 0 ? tabIdx : 0]) tabButtons[tabIdx >= 0 ? tabIdx : 0].classList.add('active');
+  loadTab(tabNames.indexOf(tab) >= 0 ? tab : 'overview');
+}
 
 function switchTab(tab, btn) {
   if (currentTab === tab) return;
@@ -60,7 +128,9 @@ function switchTab(tab, btn) {
 
 async function api(path) {
   if (cachedData[path]) return cachedData[path];
-  const r = await fetch(path).then(r => r.json());
+  const res = await fetch(path);
+  if (res.status === 401) { showLogin(); throw new Error('Unauthenticated'); }
+  const r = await res.json();
   cachedData[path] = r;
   return r;
 }
@@ -74,6 +144,7 @@ async function loadTab(tab) {
   if (tab === 'payments')     await renderPayments(el);
   if (tab === 'pricing')      await renderPricing(el);
   if (tab === 'replyLogs')    await renderReplyLogs(el);
+  if (tab === 'staff')        await renderStaff(el);
 }
 
 async function renderOverview(el) {
@@ -334,15 +405,134 @@ async function renderReplyLogs(el) {
     + '</tbody></table></div>';
 }
 
+// ── Staff tab ─────────────────────────────────────────────────────────────────
+
+async function renderStaff(el) {
+  let staff = [];
+  try { staff = await api('/api/admin/staff'); } catch(_) {}
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div class="bs-section-title" style="margin:0;">Staff accounts</div>
+        <div style="font-size:13px;color:var(--text-faint);margin-top:3px;">Only super_admin accounts can manage pricing, staff, and approve payments.</div>
+      </div>
+      <button class="bs-btn-primary" onclick="openStaffModal()">+ Add staff</button>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+        <tbody id="staffBody">${renderStaffRows(staff)}</tbody>
+      </table>
+    </div>
+
+    <!-- Staff modal -->
+    <div id="staffModal" style="display:none;position:fixed;inset:0;background:rgba(8,10,20,0.7);z-index:8000;align-items:center;justify-content:center;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <div class="bs-section-title" style="margin:0 0 20px;">Add staff account</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Full name</label>
+            <input id="sName" class="bs-input" type="text" placeholder="e.g. Maria Santos">
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Email address</label>
+            <input id="sEmail" class="bs-input" type="email" placeholder="staff@bisiro.ph">
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Temporary password</label>
+            <input id="sPass" class="bs-input" type="password" placeholder="Min 8 characters">
+          </div>
+          <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Role</label>
+            <select id="sRole" class="bs-input" style="min-height:unset;">
+              <option value="support">Support — can view subscribers, add credits, approve payments</option>
+              <option value="super_admin">Super Admin — full access including pricing & staff</option>
+            </select>
+          </div>
+        </div>
+        <div id="staffModalErr" style="display:none;margin-top:10px;font-size:13px;color:#d9534f;"></div>
+        <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:20px;">
+          <button class="bs-btn-ghost" onclick="closeStaffModal()">Cancel</button>
+          <button class="bs-btn-primary" id="staffCreateBtn" onclick="createStaff()">Create account</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderStaffRows(staff) {
+  if (!staff.length) return '<tr><td colspan="6" style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">No staff accounts yet.</td></tr>';
+  return staff.map(s => '<tr class="bs-row-hover">'
+    + '<td><strong>' + (s.name || '—') + '</strong></td>'
+    + '<td style="color:var(--text-dim);">' + s.email + '</td>'
+    + '<td><span class="bs-status ' + (s.role === 'super_admin' ? 'bs-status-blue' : 'bs-status-green') + '">' + (s.role === 'super_admin' ? 'Super Admin' : 'Support') + '</span></td>'
+    + '<td><span class="bs-status ' + (s.is_active ? 'bs-status-green' : 'bs-status-gray') + '">' + (s.is_active ? 'Active' : 'Disabled') + '</span></td>'
+    + '<td style="color:var(--text-faint);">' + (s.created_at ? new Date(s.created_at).toLocaleDateString('en-PH', {month:'short',day:'numeric',year:'numeric'}) : '—') + '</td>'
+    + '<td style="display:flex;gap:6px;">'
+    + '<button class="bs-btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="toggleStaff(' + s.id + ',' + s.is_active + ')">' + (s.is_active ? 'Disable' : 'Enable') + '</button>'
+    + '<button class="bs-btn-danger" style="padding:4px 10px;font-size:12px;" onclick="deleteStaff(' + s.id + ',\'' + s.email + '\')">Delete</button>'
+    + '</td></tr>'
+  ).join('');
+}
+
+function openStaffModal() {
+  const m = document.getElementById('staffModal');
+  if (m) { document.getElementById('sName').value=''; document.getElementById('sEmail').value=''; document.getElementById('sPass').value=''; document.getElementById('sRole').value='support'; document.getElementById('staffModalErr').style.display='none'; m.style.display='flex'; }
+}
+function closeStaffModal() { const m=document.getElementById('staffModal'); if(m) m.style.display='none'; }
+
+async function createStaff() {
+  const name     = document.getElementById('sName').value.trim();
+  const email    = document.getElementById('sEmail').value.trim();
+  const password = document.getElementById('sPass').value;
+  const role     = document.getElementById('sRole').value;
+  const err      = document.getElementById('staffModalErr');
+  const btn      = document.getElementById('staffCreateBtn');
+  err.style.display = 'none';
+  if (!email || !password) { err.textContent='Email and password are required.'; err.style.display='block'; return; }
+  if (password.length < 8)  { err.textContent='Password must be at least 8 characters.'; err.style.display='block'; return; }
+  btn.disabled=true; btn.textContent='Creating…';
+  try {
+    const res = await fetch('/api/admin/staff', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,email,password,role}) }).then(r=>r.json());
+    if (res.error) throw new Error(res.error);
+    closeStaffModal();
+    cachedData = {};
+    switchTab('staff', null);
+  } catch(e) {
+    err.textContent = e.message;
+    err.style.display = 'block';
+  }
+  btn.disabled=false; btn.textContent='Create account';
+}
+
+async function toggleStaff(id, current) {
+  if (!confirm((current ? 'Disable' : 'Enable') + ' this staff account?')) return;
+  await fetch('/api/admin/staff/' + id, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({is_active:!current}) });
+  cachedData = {};
+  switchTab('staff', null);
+}
+
+async function deleteStaff(id, email) {
+  if (!confirm('Permanently delete ' + email + '? This cannot be undone.')) return;
+  const res = await fetch('/api/admin/staff/' + id, { method:'DELETE' }).then(r=>r.json());
+  if (res.error) { alert(res.error); return; }
+  cachedData = {};
+  switchTab('staff', null);
+}
+
+// ── Page init (auth-first) ────────────────────────────────────────────────────
+
 BisiroShell.init({ role:'admin', active:'overview', user:{} });
 
-// Activate correct tab from URL
-const tab = new URLSearchParams(location.search).get('tab') || 'overview';
-const tabButtons = document.querySelectorAll('.admin-tab');
-const tabNames = ['overview','subscribers','payments','pricing','replyLogs'];
-const tabIdx = tabNames.indexOf(tab);
-if (tabButtons[tabIdx >= 0 ? tabIdx : 0]) tabButtons[tabIdx >= 0 ? tabIdx : 0].classList.add('active');
-loadTab(tab);
+(async () => {
+  try {
+    const me = await fetch('/api/admin/me').then(r => r.json());
+    if (me.error) { showLogin(); return; }
+    initAfterAuth(me.email, me.role);
+  } catch (_) {
+    showLogin();
+  }
+})();
 </script>
 </body>
 </html>
