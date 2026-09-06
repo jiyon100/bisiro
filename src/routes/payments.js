@@ -3,14 +3,21 @@ const pool    = require('../db/pool');
 const { createCheckoutSession } = require('../services/paymongo');
 
 const router = express.Router();
+router.use((req, res, next) => {
+  if (req.session.userId) return next();
+  res.status(401).json({ error: 'Not authenticated' });
+});
 
 // Minimum top-up per PROJECT_SPEC §2
 const MIN_TOPUP_PHP  = 500;
 const SETUP_FEE_PHP  = 20000;
 
-function userId(req) {
-  return req.session.userId || req.body?.user_id || 1; // TODO: enforce session auth in Phase 5
+function requireUser(req, res, next) {
+  if (req.session.userId) return next();
+  res.status(401).json({ error: 'Not authenticated' });
 }
+
+function userId(req) { return req.session.userId; }
 
 // POST /api/payments/topup
 // Creates a PayMongo Checkout Session for a credit top-up.

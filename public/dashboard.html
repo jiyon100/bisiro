@@ -81,7 +81,19 @@
   </main>
 </div>
 <script>
-const USER_ID = 1;
+let USER_ID = null;
+
+// Auth gate — redirect to login if not authenticated or not active
+(async () => {
+  try {
+    const r = await fetch('/api/user/me');
+    if (!r.ok) { window.location.href = '/login.html'; return; }
+    const me = await r.json();
+    if (!me.is_active) { window.location.href = '/login.html'; return; }
+    USER_ID = me.id;
+    loadAll(me);
+  } catch { window.location.href = '/login.html'; }
+})();
 
 function timeAgo(ts) {
   if (!ts) return '';
@@ -99,9 +111,14 @@ function statusInfo(c) {
   return { label:"You're handling", cls:'bs-status bs-status-gray', dot:'var(--text-faint)' };
 }
 
-async function loadAll() {
+async function doLogout() {
+  await fetch('/api/user/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+}
+
+async function loadAll(me) {
   try {
-    const u = await fetch('/api/settings/user?user_id=' + USER_ID).then(r => r.json());
+    const u = me || await fetch('/api/user/me').then(r => r.json());
     document.getElementById('bizName').textContent = u.business_name || 'My Business';
     const bal = parseFloat(u.credit_balance_php) || 0;
     document.getElementById('kpiBalance').textContent = '₱' + bal.toLocaleString('en-PH', {minimumFractionDigits:2,maximumFractionDigits:2});
@@ -191,7 +208,6 @@ function renderRecent(convs) {
 }
 
 BisiroShell.init({ role:'owner', active:'dashboard', user:{} });
-loadAll();
 </script>
 </body>
 </html>

@@ -411,6 +411,10 @@
       <button class="sb-item" data-tab="subscribers" onclick="switchTab('subscribers',this)">
         <span class="sb-item-left"><span class="sb-dot"></span>Subscribers</span>
       </button>
+      <button class="sb-item" data-tab="pendingSignups" onclick="switchTab('pendingSignups',this)">
+        <span class="sb-item-left"><span class="sb-dot"></span>Pending signups</span>
+        <span class="sb-badge" id="pendingSignupsBadge" style="display:none;"></span>
+      </button>
       <button class="sb-item" data-tab="payments" onclick="switchTab('payments',this)">
         <span class="sb-item-left"><span class="sb-dot"></span>Payments</span>
         <span class="sb-badge" id="pendingBadge" style="display:none;"></span>
@@ -568,8 +572,13 @@ function initAfterAuth(email, role) {
     const badge = document.getElementById('pendingBadge');
     if (rows.length) { badge.textContent = rows.length; badge.style.display = ''; }
   }).catch(() => {});
+  // Load pending signups count for badge
+  fetch('/api/admin/pending-signups').then(r => r.json()).then(rows => {
+    const badge = document.getElementById('pendingSignupsBadge');
+    if (rows.length) { badge.textContent = rows.length; badge.style.display = ''; }
+  }).catch(() => {});
   // Activate first tab
-  const tabNames = ['overview','subscribers','payments','pricing','replyLogs','staff'];
+  const tabNames = ['overview','subscribers','pendingSignups','payments','pricing','replyLogs','staff'];
   const urlTab   = new URLSearchParams(location.search).get('tab') || 'overview';
   const tab      = tabNames.includes(urlTab) ? urlTab : 'overview';
   const btn      = document.querySelector(`.sb-item[data-tab="${tab}"]`);
@@ -600,12 +609,13 @@ function switchTab(tab, btn) {
 async function loadTab(tab) {
   const el = document.getElementById('tabContent');
   el.innerHTML = '<div class="empty-state" style="padding:48px;">Loading…</div>';
-  if (tab === 'overview')    await renderOverview(el);
-  if (tab === 'subscribers') await renderSubscribers(el);
-  if (tab === 'payments')    await renderPayments(el);
-  if (tab === 'pricing')     await renderPricing(el);
-  if (tab === 'replyLogs')   await renderReplyLogs(el);
-  if (tab === 'staff')       await renderStaff(el);
+  if (tab === 'overview')       await renderOverview(el);
+  if (tab === 'subscribers')    await renderSubscribers(el);
+  if (tab === 'pendingSignups') await renderPendingSignups(el);
+  if (tab === 'payments')       await renderPayments(el);
+  if (tab === 'pricing')        await renderPricing(el);
+  if (tab === 'replyLogs')      await renderReplyLogs(el);
+  if (tab === 'staff')          await renderStaff(el);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -940,6 +950,95 @@ async function adminToggleActive(id, current) {
   await fetch('/api/admin/user/'+id+'/set-active',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({is_active:!current})});
   cachedData = {};
   switchTab('subscribers', null);
+}
+
+// ── Pending Signups ─────────────────────────────────────────────────────
+async function renderPendingSignups(el) {
+  let signups = [];
+  try { signups = await fetch('/api/admin/pending-signups').then(r => r.json()); } catch(_) {}
+
+  el.innerHTML = `
+    <div class="pg-header">
+      <div>
+        <h1 class="pg-h1">Pending signups</h1>
+        <p class="pg-sub">Subscribers who paid the ₱20,000 setup fee and are awaiting activation.</p>
+      </div>
+    </div>
+    <div class="surf-table">
+      <div class="tbl-head" style="display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr auto;gap:12px;align-items:center;">
+        <div>Business</div><div>Contact</div><div>Amount</div><div>Paid on</div><div></div>
+      </div>
+      <div id="pendingSignupsBody">
+        ${signups.length ? signups.map(s => pendingSignupRow(s)).join('') : '<div class="empty-state">No pending signups — you\'re all caught up ✓</div>'}
+      </div>
+    </div>`;
+}
+
+function pendingSignupRow(s) {
+  return `<div class="tbl-row" style="display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr auto;gap:12px;align-items:center;" id="psrow-${s.id}">
+    <div class="sub-name-wrap">
+      <div class="sub-avatar">${initials(s.business_name||s.email)}</div>
+      <div>
+        <div class="sub-biz">${s.business_name||'—'}</div>
+        <div class="sub-type dim">${s.email||'—'}</div>
+      </div>
+    </div>
+    <div class="dim" style="font-size:13px;">${s.phone||'—'}</div>
+    <div class="num" style="font-size:14px;font-weight:600;">${fmtPhp(s.amount_php||20000,0)}</div>
+    <div class="faint" style="font-size:13px;">${fmtDate(s.paid_at)}</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-primary btn-sm" onclick="activateSignup(${s.id})">Activate</button>
+      <button class="btn-danger btn-sm" onclick="refundSignup(${s.id},'${(s.business_name||s.email||'').replace(/'/g,'\\\'')}')" style="background:transparent;color:#d9534f;border:1px solid #d9534f;">Refund</button>
+    </div>
+  </div>`;
+}
+
+async function activateSignup(userId) {
+  const btn = document.querySelector(`#psrow-${userId} .btn-primary`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Activating…'; }
+  try {
+    const r = await fetch(`/api/admin/user/${userId}/activate`, { method: 'POST' }).then(r => r.json());
+    if (r.error) throw new Error(r.error);
+    const row = document.getElementById(`psrow-${userId}`);
+    if (row) {
+      row.style.opacity = '0.4';
+      row.innerHTML = row.innerHTML.replace(/<div style="display:flex.*?<\/div>\s*<\/div>/, '<div style="display:flex;gap:8px;"><span style="font-size:13px;color:#1f9d6b;font-weight:600;">Activated ✓</span></div></div>');
+    }
+    // Update sidebar badge
+    const badge = document.getElementById('pendingSignupsBadge');
+    if (badge) {
+      const cur = parseInt(badge.textContent||'0') - 1;
+      if (cur > 0) { badge.textContent = cur; } else { badge.style.display = 'none'; }
+    }
+    delete cachedData['/api/admin/pending-signups'];
+  } catch(e) {
+    alert('Activation failed: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Activate'; }
+  }
+}
+
+async function refundSignup(userId, name) {
+  if (!confirm(`Issue a full ₱20,000 refund to "${name}" and reject their signup?`)) return;
+  const btn = document.querySelector(`#psrow-${userId} .btn-danger`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Refunding…'; }
+  try {
+    const r = await fetch(`/api/admin/user/${userId}/refund`, { method: 'POST' }).then(r => r.json());
+    if (r.error) throw new Error(r.error);
+    const row = document.getElementById(`psrow-${userId}`);
+    if (row) {
+      row.style.opacity = '0.4';
+      row.innerHTML = row.innerHTML.replace(/<div style="display:flex.*?<\/div>\s*<\/div>/, '<div style="display:flex;gap:8px;"><span style="font-size:13px;color:#d9534f;font-weight:600;">Refunded ✓</span></div></div>');
+    }
+    const badge = document.getElementById('pendingSignupsBadge');
+    if (badge) {
+      const cur = parseInt(badge.textContent||'0') - 1;
+      if (cur > 0) { badge.textContent = cur; } else { badge.style.display = 'none'; }
+    }
+    delete cachedData['/api/admin/pending-signups'];
+  } catch(e) {
+    alert('Refund failed: ' + (e.message.includes('No PayMongo') ? 'No PayMongo payment ID on file — refund manually via the PayMongo dashboard.' : e.message));
+    if (btn) { btn.disabled = false; btn.textContent = 'Refund'; }
+  }
 }
 
 // ── Payments ────────────────────────────────────────────────────────────

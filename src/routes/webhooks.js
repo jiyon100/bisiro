@@ -331,6 +331,7 @@ router.post('/paymongo', express.raw({ type: 'application/json' }), async (req, 
   const amountCentavos = session?.attributes?.line_items?.[0]?.amount || 0;
   const amountPhp      = amountCentavos / 100;
   const sessionId      = session?.id;
+  const paymongoId     = session?.attributes?.payments?.[0]?.id || null;
 
   if (!userId || !type || !amountPhp) {
     console.error('PayMongo webhook missing metadata:', metadata);
@@ -339,9 +340,9 @@ router.post('/paymongo', express.raw({ type: 'application/json' }), async (req, 
 
   try {
     if (type === 'topup') {
-      await handleTopupPaid(userId, amountPhp, sessionId);
+      await handleTopupPaid(userId, amountPhp, sessionId, paymongoId);
     } else if (type === 'setup_fee') {
-      await handleSetupFeePaid(userId, amountPhp, sessionId);
+      await handleSetupFeePaid(userId, amountPhp, sessionId, paymongoId);
     }
   } catch (err) {
     console.error('PayMongo webhook processing error:', err.message);
@@ -350,14 +351,14 @@ router.post('/paymongo', express.raw({ type: 'application/json' }), async (req, 
   res.sendStatus(200);
 });
 
-async function handleTopupPaid(userId, amountPhp, sessionId) {
-  // Mark pending transaction as complete and credit the balance
+async function handleTopupPaid(userId, amountPhp, sessionId, paymongoId) {
   await pool.query(
     `UPDATE credit_transactions SET status = 'confirmed', updated_at = NOW(),
+     paymongo_id = COALESCE(paymongo_id, $3),
      description = COALESCE(description, 'PayMongo session ' || $2)
      WHERE user_id = $1 AND type = 'topup' AND status = 'pending'
        AND description LIKE '%' || $2 || '%'`,
-    [userId, sessionId]
+    [userId, sessionId, paymongoId]
   );
 
   await pool.query(
@@ -381,13 +382,14 @@ async function handleTopupPaid(userId, amountPhp, sessionId) {
   console.log(`Top-up ₱${amountPhp} credited to user ${userId}`);
 }
 
-async function handleSetupFeePaid(userId, amountPhp, sessionId) {
+async function handleSetupFeePaid(userId, amountPhp, sessionId, paymongoId) {
   await pool.query(
     `UPDATE credit_transactions SET status = 'confirmed', updated_at = NOW(),
+     paymongo_id = COALESCE(paymongo_id, $3),
      description = COALESCE(description, 'PayMongo session ' || $2)
      WHERE user_id = $1 AND type = 'setup_fee' AND status = 'pending'
        AND description LIKE '%' || $2 || '%'`,
-    [userId, sessionId]
+    [userId, sessionId, paymongoId]
   );
 
   // Activate the account

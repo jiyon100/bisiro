@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bisiro — Sign in</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:              #070d1c;
+      --surface:         #0e1730;
+      --surface-2:       #162040;
+      --border:          rgba(255,255,255,0.08);
+      --border-strong:   rgba(255,255,255,0.14);
+      --text:            #e8eaf0;
+      --text-dim:        #8b93a8;
+      --text-faint:      #4f5872;
+      --accent:          #4d8bff;
+      --accent-2:        #3a6fd4;
+      --accent-contrast: #ffffff;
+      --glow:            rgba(77,139,255,0.18);
+      --shadow:          0 8px 32px rgba(0,0,0,0.4);
+    }
+    [data-theme="light"] {
+      --bg:#f4f6fb; --surface:#ffffff; --surface-2:#eef1f8;
+      --border:rgba(0,0,0,0.08); --border-strong:rgba(0,0,0,0.14);
+      --text:#111827; --text-dim:#4b5563; --text-faint:#9ca3af;
+      --accent:#2563eb; --accent-2:#1d4ed8; --accent-contrast:#ffffff;
+      --glow:rgba(37,99,235,0.12); --shadow:0 8px 32px rgba(0,0,0,0.1);
+    }
+    [data-theme="dark"] {
+      --bg:#0f0f0f; --surface:#1a1a1a; --surface-2:#242424;
+      --border:rgba(255,255,255,0.07); --border-strong:rgba(255,255,255,0.12);
+      --text:#f0f0f0; --text-dim:#999; --text-faint:#555;
+      --accent:#a78bfa; --accent-2:#7c3aed; --accent-contrast:#fff;
+      --glow:rgba(167,139,250,0.15); --shadow:0 8px 32px rgba(0,0,0,0.5);
+    }
+    [data-theme="green"] {
+      --bg:#071410; --surface:#0d2018; --surface-2:#132a20;
+      --border:rgba(255,255,255,0.07); --border-strong:rgba(255,255,255,0.13);
+      --text:#e0ede8; --text-dim:#7aab90; --text-faint:#3d6b54;
+      --accent:#22c55e; --accent-2:#16a34a; --accent-contrast:#fff;
+      --glow:rgba(34,197,94,0.15); --shadow:0 8px 32px rgba(0,0,0,0.4);
+    }
+    [data-theme="warm"] {
+      --bg:#14100a; --surface:#1f1810; --surface-2:#2a2015;
+      --border:rgba(255,255,255,0.07); --border-strong:rgba(255,255,255,0.13);
+      --text:#ede8df; --text-dim:#a89880; --text-faint:#6b5a40;
+      --accent:#f59e0b; --accent-2:#d97706; --accent-contrast:#000;
+      --glow:rgba(245,158,11,0.15); --shadow:0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .page { width: 100%; max-width: 440px; }
+
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      justify-content: center; margin-bottom: 36px;
+    }
+    .logo-mark {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--accent); color: var(--accent-contrast);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px;
+    }
+    .logo-name {
+      font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+      font-size: 22px; color: var(--text);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      box-shadow: var(--shadow);
+    }
+
+    .tab-bar {
+      display: flex; gap: 4px;
+      background: var(--surface-2);
+      border-radius: 10px; padding: 4px;
+      margin-bottom: 28px;
+    }
+    .tab-btn {
+      flex: 1; padding: 9px; border: none; background: transparent;
+      border-radius: 8px; cursor: pointer;
+      font-family: 'IBM Plex Sans', sans-serif; font-size: 13.5px;
+      font-weight: 500; color: var(--text-dim); transition: all .15s;
+    }
+    .tab-btn.active {
+      background: var(--surface); color: var(--text);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+
+    .form-title {
+      font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+      font-size: 20px; margin-bottom: 6px;
+    }
+    .form-sub {
+      font-size: 13px; color: var(--text-dim); margin-bottom: 24px; line-height: 1.5;
+    }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 500;
+      font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-dim); margin-bottom: 7px;
+    }
+    .field input {
+      width: 100%; padding: 11px 14px;
+      background: var(--surface-2); border: 1px solid var(--border-strong);
+      border-radius: 10px; color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif; font-size: 14px;
+      outline: none; transition: border-color .15s;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .field input::placeholder { color: var(--text-faint); }
+
+    .btn-primary {
+      width: 100%; padding: 13px;
+      background: var(--accent); color: var(--accent-contrast);
+      border: none; border-radius: 10px; cursor: pointer;
+      font-family: 'IBM Plex Sans', sans-serif; font-size: 14.5px;
+      font-weight: 600; margin-top: 8px; transition: opacity .15s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error-msg {
+      color: #f87171; font-size: 13px; margin-top: 12px;
+      text-align: center; display: none;
+    }
+    .success-msg {
+      color: #4ade80; font-size: 13px; margin-top: 12px;
+      text-align: center; display: none; line-height: 1.5;
+    }
+
+    .status-card {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px; text-align: center;
+      display: none; margin-top: 16px;
+    }
+    .status-card .status-icon { font-size: 32px; margin-bottom: 10px; }
+    .status-card h3 {
+      font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+      font-size: 16px; margin-bottom: 8px;
+    }
+    .status-card p { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0; color: var(--text-faint); font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    .themes {
+      display: flex; gap: 6px; justify-content: center; margin-top: 28px;
+    }
+    .theme-dot {
+      width: 18px; height: 18px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: border-color .15s;
+    }
+    .theme-dot.active { border-color: var(--text); }
+  </style>
+</head>
+<body>
+<div class="page" id="app" data-theme="blue">
+
+  <div class="logo">
+    <div class="logo-mark">B</div>
+    <span class="logo-name">Bisiro</span>
+  </div>
+
+  <div class="card">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="showTab('login')">Sign in</button>
+      <button class="tab-btn" onclick="showTab('signup')">Register</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="loginForm">
+      <div class="form-title">Welcome back</div>
+      <div class="form-sub">Sign in to your Bisiro account</div>
+      <div class="field">
+        <label>Email address</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="btn-primary" id="loginBtn" onclick="doLogin()">Sign in</button>
+      <div class="error-msg" id="loginError"></div>
+
+      <!-- Status cards shown after login based on account state -->
+      <div class="status-card" id="pendingPaymentCard">
+        <div class="status-icon">💳</div>
+        <h3>Setup fee required</h3>
+        <p>Complete your ₱20,000 setup fee payment to activate your account.</p>
+        <button class="btn-primary" style="margin-top:16px;" onclick="goToSetupFee()">Pay now →</button>
+      </div>
+      <div class="status-card" id="pendingApprovalCard">
+        <div class="status-icon">⏳</div>
+        <h3>Payment received — under review</h3>
+        <p>Your setup fee has been received. Our team will review and activate your account shortly. We'll reach out via email.</p>
+      </div>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div id="signupForm" style="display:none;">
+      <div class="form-title">Create your account</div>
+      <div class="form-sub">Get started with Bisiro — a one-time ₱20,000 setup fee applies. You'll be redirected to payment after signing up.</div>
+      <div class="field">
+        <label>Business name *</label>
+        <input type="text" id="signupBizName" placeholder="e.g. Ate Len's Ukay Ukay" />
+      </div>
+      <div class="field">
+        <label>Email address *</label>
+        <input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="field">
+        <label>Phone number</label>
+        <input type="tel" id="signupPhone" placeholder="e.g. 09171234567" />
+      </div>
+      <div class="field">
+        <label>Password *</label>
+        <input type="password" id="signupPassword" placeholder="At least 8 characters" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <label>Confirm password *</label>
+        <input type="password" id="signupConfirm" placeholder="Repeat password" autocomplete="new-password" />
+      </div>
+      <button class="btn-primary" id="signupBtn" onclick="doSignup()">Register &amp; Pay ₱20,000 →</button>
+      <div class="error-msg" id="signupError"></div>
+      <div class="success-msg" id="signupSuccess">Account created! Redirecting you to payment…</div>
+    </div>
+  </div>
+
+  <div class="themes">
+    <div class="theme-dot active" style="background:#4d8bff;" onclick="setTheme('blue',this)" title="Blue"></div>
+    <div class="theme-dot" style="background:#f0f0f0;border:1px solid #ccc;" onclick="setTheme('light',this)" title="Light"></div>
+    <div class="theme-dot" style="background:#a78bfa;" onclick="setTheme('dark',this)" title="Dark"></div>
+    <div class="theme-dot" style="background:#22c55e;" onclick="setTheme('green',this)" title="Green"></div>
+    <div class="theme-dot" style="background:#f59e0b;" onclick="setTheme('warm',this)" title="Warm"></div>
+  </div>
+
+</div>
+<script>
+const app = document.getElementById('app');
+
+// Persist theme
+const saved = localStorage.getItem('bisiro_theme') || 'blue';
+setTheme(saved);
+
+function setTheme(t, el) {
+  app.dataset.theme = t;
+  localStorage.setItem('bisiro_theme', t);
+  document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+  if (el) el.classList.add('active');
+  else {
+    const idx = ['blue','light','dark','green','warm'].indexOf(t);
+    document.querySelectorAll('.theme-dot')[idx]?.classList.add('active');
+  }
+}
+
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (tab==='login'&&i===0)||(tab==='signup'&&i===1)));
+  document.getElementById('loginForm').style.display  = tab === 'login'  ? '' : 'none';
+  document.getElementById('signupForm').style.display = tab === 'signup' ? '' : 'none';
+}
+
+// Check if already logged in
+(async () => {
+  try {
+    const r = await fetch('/api/user/me');
+    if (r.ok) {
+      const u = await r.json();
+      if (u.is_active) { window.location.href = '/dashboard.html'; return; }
+    }
+  } catch {}
+})();
+
+async function doLogin() {
+  const email    = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const err      = document.getElementById('loginError');
+  const btn      = document.getElementById('loginBtn');
+  err.style.display = 'none';
+  ['pendingPaymentCard','pendingApprovalCard'].forEach(id => document.getElementById(id).style.display = 'none');
+
+  if (!email || !password) { showErr(err, 'Please enter your email and password.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    const res  = await fetch('/api/user/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showErr(err, data.error || 'Login failed.'); return; }
+
+    if (data.is_active) {
+      window.location.href = '/dashboard.html';
+    } else if (data.setup_fee_paid) {
+      document.getElementById('pendingApprovalCard').style.display = '';
+    } else {
+      document.getElementById('pendingPaymentCard').style.display = '';
+    }
+  } catch {
+    showErr(err, 'Network error. Please try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign in';
+  }
+}
+
+async function goToSetupFee() {
+  const res  = await fetch('/api/payments/setup-fee', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+  const data = await res.json();
+  if (data.checkout_url) window.location.href = data.checkout_url;
+}
+
+async function doSignup() {
+  const business_name = document.getElementById('signupBizName').value.trim();
+  const email         = document.getElementById('signupEmail').value.trim();
+  const phone         = document.getElementById('signupPhone').value.trim();
+  const password      = document.getElementById('signupPassword').value;
+  const confirm       = document.getElementById('signupConfirm').value;
+  const err           = document.getElementById('signupError');
+  const success       = document.getElementById('signupSuccess');
+  const btn           = document.getElementById('signupBtn');
+  err.style.display     = 'none';
+  success.style.display = 'none';
+
+  if (!business_name || !email || !password) { showErr(err, 'Business name, email and password are required.'); return; }
+  if (password.length < 8)                  { showErr(err, 'Password must be at least 8 characters.'); return; }
+  if (password !== confirm)                 { showErr(err, 'Passwords do not match.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  try {
+    const res  = await fetch('/api/user/signup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ business_name, email, phone, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showErr(err, data.error || 'Signup failed.'); return; }
+    success.style.display = '';
+    setTimeout(() => { window.location.href = data.checkout_url; }, 1200);
+  } catch {
+    showErr(err, 'Network error. Please try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Register & Pay ₱20,000 →';
+  }
+}
+
+function showErr(el, msg) { el.textContent = msg; el.style.display = ''; }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('loginForm').style.display !== 'none') doLogin();
+    else doSignup();
+  }
+});
+</script>
+</body>
+</html>

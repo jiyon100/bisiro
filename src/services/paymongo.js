@@ -122,4 +122,33 @@ function verifyWebhookSignature(rawBody, signature) {
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(hmacKey));
 }
 
-module.exports = { createCheckoutSession, verifyWebhookSignature };
+/**
+ * Issue a PayMongo refund for a given payment ID.
+ * @param {string} paymongoPaymentId - The PayMongo payment ID (pay_xxx)
+ * @param {number} amountPhp - Amount to refund in PHP
+ * @param {string} notes - Reason note for the refund
+ */
+async function createRefund({ paymongoPaymentId, amountPhp, notes = 'Refund issued by admin' }) {
+  const amountCentavos = Math.round(amountPhp * 100);
+  const response = await fetch(`${PAYMONGO_BASE}/refunds`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: authHeader() },
+    body: JSON.stringify({
+      data: {
+        attributes: {
+          amount:     amountCentavos,
+          payment_id: paymongoPaymentId,
+          reason:     'others',
+          notes,
+        },
+      },
+    }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(`PayMongo refund error ${response.status}: ${JSON.stringify(err)}`);
+  }
+  return await response.json();
+}
+
+module.exports = { createCheckoutSession, verifyWebhookSignature, createRefund };

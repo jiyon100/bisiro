@@ -338,4 +338,55 @@ router.delete('/staff/:id', requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Pending signups (paid but not yet activated) ────────────────────────────
+
+// GET /api/admin/pending-signups
+router.get('/pending-signups', requireAdmin, async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT u.id, u.email, u.business_name, u.phone, u.created_at,
+           ct.id AS tx_id, ct.amount_php, ct.paymongo_id, ct.created_at AS paid_at
+    FROM users u
+    JOIN credit_transactions ct ON ct.user_id = u.id AND ct.type = 'setup_fee' AND ct.status = 'confirmed'
+    WHERE u.setup_fee_paid = true AND u.is_active = false
+    ORDER BY ct.created_at DESC
+  `);
+  res.json(rows);
+});
+
+// POST /api/admin/user/:id/activate
+router.post('/user/:id/activate', requireAdmin, async (req, res) => {
+  await pool.query(
+    `UPDATE users SET is_active = true WHERE id = $1`,
+    [req.params.id]
+  );
+  res.json({ ok: true });
+});
+
+// POST /api/admin/user/:id/refund
+router.post('/user/:id/refund', requireAdmin, async (req, res) => {
+  const { createRefund } = require('../services/paymongo');
+  const { rows } = await pool.query(
+    `SELECT paymongo_id, amount_php FROM credit_transactions
+     WHERE user_id = $1 AND type = 'setup_fee' AND status = 'confirmed'
+     ORDER BY created_at DESC LIMIT 1`,
+    [req.params.id]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'No confirmed setup fee found' });
+  const tx = rows[0];
+  if (!tx.paymongo_id) return res.status(400).json({ error: 'No PayMongo payment ID on record — refund manually via PayMongo dashboard' });
+
+  try {
+    await createRefund({ paymongoPaymentId: tx.paymongo_id, amountPhp: tx.amount_php, notes: 'Application rejected by admin' });
+    await pool.query(
+      `UPDATE credit_transactions SET status = 'refunded', updated_at = NOW()
+       WHERE user_id = $1 AND type = 'setup_fee' AND status = 'confirmed'`,
+      [req.params.id]
+    );
+    await pool.query(`UPDATE users SET setup_fee_paid = false WHERE id = $1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

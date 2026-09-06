@@ -17,6 +17,7 @@ app.use(session({
 // receives a raw Buffer for signature verification. The Facebook POST route
 // applies express.json() itself.
 app.use('/auth',             require('./routes/auth'));
+app.use('/api/user',         require('./routes/userAuth'));
 app.use('/webhooks',         require('./routes/webhooks'));
 
 app.use(express.json());
@@ -29,7 +30,7 @@ app.use('/api/admin',          require('./routes/admin'));
 app.use('/api/settings',       require('./routes/settings'));
 app.use(express.static('public'));
 
-app.get('/', (req, res) => res.redirect('/wizard.html'));
+app.get('/', (req, res) => res.redirect('/login.html'));
 
 app.get('/health', async (req, res) => {
   let dbOk = false;
