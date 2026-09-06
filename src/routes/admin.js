@@ -208,6 +208,33 @@ router.get('/transactions', requireAdmin, async (req, res) => {
   res.json(rows);
 });
 
+// GET /api/admin/user/:id/conversations
+router.get('/user/:id/conversations', requireAdmin, async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT c.id, c.customer_name, c.customer_psid, c.status, c.ai_paused,
+           c.pause_type, c.last_message_at, c.created_at,
+           fp.page_name,
+           (SELECT content FROM conversation_messages WHERE conversation_id = c.id ORDER BY sent_at DESC LIMIT 1) AS last_message,
+           (SELECT sender  FROM conversation_messages WHERE conversation_id = c.id ORDER BY sent_at DESC LIMIT 1) AS last_sender
+    FROM conversations c
+    LEFT JOIN facebook_pages fp ON fp.id = c.facebook_page_id
+    WHERE c.user_id = $1
+    ORDER BY c.last_message_at DESC
+    LIMIT 30
+  `, [req.params.id]);
+  res.json(rows);
+});
+
+// GET /api/admin/conversation/:id/messages
+router.get('/conversation/:id/messages', requireAdmin, async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT sender, content, sent_at FROM conversation_messages
+    WHERE conversation_id = $1
+    ORDER BY sent_at ASC LIMIT 80
+  `, [req.params.id]);
+  res.json(rows);
+});
+
 // GET /api/admin/user/:id/transactions
 router.get('/user/:id/transactions', requireAdmin, async (req, res) => {
   const { rows } = await pool.query(

@@ -3,78 +3,534 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bisiro — Admin</title>
+  <title>Bisiro — Admin Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/bisiro.css" />
-  <script src="/bisiro-shell.js"></script>
   <style>
-    .admin-tab{font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;font-weight:500;border:none;background:transparent;cursor:pointer;padding:10px 16px;color:var(--text-faint);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s;}
-    .admin-tab.active{color:var(--text);border-bottom-color:var(--accent);}
-    .admin-tabs-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:24px;}
-    th{text-align:left;padding:11px 18px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--text-faint);font-weight:500;border-bottom:1px solid var(--border);}
-    td{padding:13px 18px;border-bottom:1px solid var(--border);font-size:13.5px;}
-    tr:last-child td{border-bottom:none;}
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body { background: #070d1c; font-family: 'IBM Plex Sans', system-ui, sans-serif;
+           -webkit-font-smoothing: antialiased; color: #e3eaff; }
+    button { font-family: inherit; cursor: pointer; }
+    input, select, textarea { font-family: inherit; }
+
+    /* ── Theme variables ────────────────────────────────────── */
+    [data-theme="light"] {
+      --bg:#f6f7f9; --surface:#ffffff; --surface-2:#eef1f6;
+      --border:rgba(15,22,38,0.09); --border-strong:rgba(15,22,38,0.16);
+      --text:#0d1117; --text-dim:#525c6b; --text-faint:#8a93a3;
+      --accent:#2f6bff; --accent-2:#6f9bff; --accent-contrast:#ffffff;
+      --glow:rgba(47,107,255,0.20); --shadow:rgba(20,30,55,0.10);
+    }
+    [data-theme="dark"] {
+      --bg:#0a0d13; --surface:#11151d; --surface-2:#161c27;
+      --border:rgba(255,255,255,0.08); --border-strong:rgba(255,255,255,0.16);
+      --text:#e7eaf0; --text-dim:#9aa3b2; --text-faint:#6b7382;
+      --accent:#5b8cff; --accent-2:#3f6bff; --accent-contrast:#06101f;
+      --glow:rgba(91,140,255,0.22); --shadow:rgba(0,0,0,0.5);
+    }
+    [data-theme="blue"] {
+      --bg:#070d1c; --surface:#0e1730; --surface-2:#152141;
+      --border:rgba(120,160,255,0.14); --border-strong:rgba(120,160,255,0.28);
+      --text:#e3eaff; --text-dim:#93a6d4; --text-faint:#6076a8;
+      --accent:#4d8bff; --accent-2:#2f6bff; --accent-contrast:#04101f;
+      --glow:rgba(77,139,255,0.28); --shadow:rgba(0,6,22,0.6);
+    }
+    [data-theme="green"] {
+      --bg:#07130f; --surface:#0d1d18; --surface-2:#122620;
+      --border:rgba(120,255,200,0.12); --border-strong:rgba(120,255,200,0.26);
+      --text:#dff3ea; --text-dim:#8fb6a8; --text-faint:#5f8678;
+      --accent:#2dd4a7; --accent-2:#10b981; --accent-contrast:#04140e;
+      --glow:rgba(45,212,167,0.24); --shadow:rgba(0,10,6,0.55);
+    }
+    [data-theme="warm"] {
+      --bg:#f5efe2; --surface:#fffdf8; --surface-2:#efe6d4;
+      --border:rgba(90,66,30,0.13); --border-strong:rgba(90,66,30,0.24);
+      --text:#2a2218; --text-dim:#6c5d47; --text-faint:#9a8a70;
+      --accent:#cf7a1c; --accent-2:#e8a23e; --accent-contrast:#fffaf2;
+      --glow:rgba(207,122,28,0.20); --shadow:rgba(70,45,10,0.12);
+    }
+
+    /* ── App shell ──────────────────────────────────────────── */
+    #bisiro-app {
+      display: flex; min-height: 100vh;
+      background: var(--bg); color: var(--text);
+    }
+
+    /* ── Sidebar ────────────────────────────────────────────── */
+    #bsSidebar {
+      width: 236px; flex: none; border-right: 1px solid var(--border);
+      background: var(--surface); min-height: 100vh; position: sticky; top: 0;
+      height: 100vh; overflow-y: auto; display: flex; flex-direction: column;
+      padding: 22px 16px;
+    }
+    .sb-logo { display: flex; align-items: center; gap: 11px; padding: 4px 8px 22px; }
+    .sb-logo-text { }
+    .sb-logo-name { font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:18px; line-height:1; }
+    .sb-logo-tag  { font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.16em;
+                    text-transform:uppercase; color:var(--text-faint); margin-top:3px; }
+    .sb-nav { display: flex; flex-direction: column; gap: 3px; }
+    .sb-item {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; padding: 10px 12px; border-radius: 9px; border: none;
+      background: transparent; color: var(--text-dim); text-align: left;
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .sb-item:hover { background: var(--surface-2); color: var(--text); }
+    .sb-item.active { background: color-mix(in srgb,var(--accent) 14%,transparent); color: var(--accent); }
+    .sb-item-left { display: flex; align-items: center; gap: 11px; }
+    .sb-dot {
+      width: 7px; height: 7px; border-radius: 2px; flex: none;
+      border: 1.5px solid var(--text-faint); transition: background .15s, border-color .15s;
+    }
+    .sb-item.active .sb-dot { background: var(--accent); border-color: var(--accent); }
+    .sb-badge {
+      font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+      background: var(--accent); color: var(--accent-contrast);
+      border-radius: 999px; padding: 1px 7px;
+    }
+    .sb-spacer { flex: 1; }
+    .sb-footer { border-top: 1px solid var(--border); padding-top: 14px; }
+    .sb-theme-label {
+      font-family:'IBM Plex Mono',monospace; font-size:9.5px;
+      letter-spacing:0.14em; text-transform:uppercase;
+      color:var(--text-faint); padding: 0 4px 8px;
+    }
+    .sb-pills {
+      display: flex; align-items: center; gap: 6px; padding: 5px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 999px; width: max-content;
+    }
+    .sb-pill {
+      position: relative; width: 22px; height: 22px; border-radius: 999px;
+      border: 1px solid var(--border-strong); cursor: pointer; padding: 0;
+      transition: transform .18s ease;
+    }
+    .sb-pill:hover { transform: scale(1.12); }
+    .sb-pill.active::after {
+      content: ''; position: absolute; inset: -4px;
+      border-radius: 999px; border: 2px solid var(--accent);
+    }
+    .sb-user { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 4px; }
+    .sb-avatar { width:32px; height:32px; border-radius:50%; flex:none;
+                 background: linear-gradient(135deg,var(--accent),var(--accent-2)); }
+    .sb-user-name { font-size:13px; font-weight:600; line-height:1.2; }
+    .sb-user-role { font-size:11px; color:var(--text-faint); }
+
+    /* ── Main ───────────────────────────────────────────────── */
+    #bsMain { flex: 1; min-width: 0; padding: 30px 36px 60px; }
+
+    /* ── Page header ────────────────────────────────────────── */
+    .pg-header { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:26px; }
+    .pg-h1 { font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:30px;
+              letter-spacing:-0.02em; margin:0; }
+    .pg-sub { color:var(--text-dim); font-size:14.5px; margin:6px 0 0; }
+    .pg-date { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-faint); }
+
+    /* ── Section label ──────────────────────────────────────── */
+    .sec-label {
+      font-family:'IBM Plex Mono',monospace; font-size:11px;
+      letter-spacing:0.14em; text-transform:uppercase; color:var(--text-faint);
+      margin: 30px 0 12px;
+    }
+
+    /* ── KPI grid ───────────────────────────────────────────── */
+    .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+    .kpi-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:14px; padding:18px 20px;
+    }
+    .kpi-label {
+      font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+      letter-spacing:0.12em; text-transform:uppercase; color:var(--text-faint);
+    }
+    .kpi-num {
+      font-family:'Space Grotesk',sans-serif; font-weight:600;
+      font-size:30px; letter-spacing:-0.02em; margin-top:8px;
+    }
+    .kpi-sub { font-size:12.5px; color:var(--text-dim); margin-top:4px; }
+    .kpi-bar-wrap { height:6px; border-radius:99px; background:var(--surface-2); margin-top:9px; overflow:hidden; }
+    .kpi-bar-fill { height:100%; background:var(--accent); border-radius:99px; }
+
+    /* ── Attention cards ────────────────────────────────────── */
+    .attn-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .attn-card { background:var(--surface); border-radius:14px; padding:18px 20px; }
+    .attn-red  { border:1px solid rgba(217,83,79,0.4);   border-left:3px solid #d9534f; }
+    .attn-amber{ border:1px solid rgba(217,138,31,0.4);  border-left:3px solid #d98a1f; }
+    .attn-title{ display:flex; align-items:center; justify-content:space-between; }
+    .attn-head { font-weight:600; font-size:14.5px; }
+    .attn-count{ font-family:'IBM Plex Mono',monospace; font-size:11px; padding:3px 9px; border-radius:999px; }
+    .attn-count-red   { color:#d9534f; background:rgba(217,83,79,0.13); }
+    .attn-count-amber { color:#d98a1f; background:rgba(217,138,31,0.14); }
+    .attn-row { display:flex; align-items:center; justify-content:space-between;
+                margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+    .attn-row + .attn-row { margin-top:10px; padding-top:0; border-top:none; }
+    .attn-biz { font-size:13.5px; font-weight:500; }
+    .attn-detail { font-size:12px; color:var(--text-faint); }
+
+    /* ── Surface table ──────────────────────────────────────── */
+    .surf-table { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+    .tbl-head {
+      display:grid; gap:12px; padding:13px 22px;
+      border-bottom:1px solid var(--border);
+      font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+      letter-spacing:0.1em; text-transform:uppercase; color:var(--text-faint);
+    }
+    .tbl-row {
+      display:grid; gap:12px; padding:15px 22px;
+      border-bottom:1px solid var(--border); align-items:center;
+      cursor:pointer; transition:background .15s;
+    }
+    .tbl-row:last-child { border-bottom:none; }
+    .tbl-row:hover { background:var(--surface-2); }
+    .tbl-row-nc { cursor:default; }
+    .tbl-row-nc:hover { background:transparent; }
+    .sub-cols { grid-template-columns:2.2fr 1fr 1.1fr 1.1fr 0.9fr 0.8fr 1fr; }
+    .pay-cols { grid-template-columns:1.2fr 1.5fr 0.8fr 1fr 1fr; }
+    .log-cols { grid-template-columns:1.4fr 1.5fr 0.8fr 0.8fr 1fr; }
+    .stf-cols { grid-template-columns:1.2fr 1.5fr 0.8fr 0.8fr 0.9fr 1.2fr; }
+
+    /* ── Subscriber initials avatar ─────────────────────────── */
+    .sub-avatar {
+      width:36px; height:36px; border-radius:9px; flex:none;
+      background:color-mix(in srgb,var(--accent) 14%,transparent);
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Space Grotesk',sans-serif; font-weight:600;
+      font-size:13px; color:var(--accent);
+    }
+    .sub-name-wrap { display:flex; align-items:center; gap:12px; min-width:0; }
+    .sub-biz { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sub-type { font-size:12px; color:var(--text-faint); }
+
+    /* ── Status badge ───────────────────────────────────────── */
+    .badge {
+      display:inline-flex; align-items:center; font-size:11.5px; font-weight:500;
+      padding:4px 10px; border-radius:999px; white-space:nowrap;
+    }
+    .badge-green { color:#1f9d6b; background:rgba(31,157,107,0.14); }
+    .badge-amber { color:#d98a1f; background:rgba(217,138,31,0.16); }
+    .badge-red   { color:#d9534f; background:rgba(217,83,79,0.15); }
+    .badge-blue  { color:#3b82f6; background:rgba(59,130,246,0.15); }
+    .badge-gray  { color:var(--text-faint); background:var(--surface-2); }
+
+    /* ── Buttons ────────────────────────────────────────────── */
+    .btn-primary {
+      display:inline-flex; align-items:center; gap:7px;
+      font-size:13.5px; font-weight:600;
+      background:var(--accent); color:var(--accent-contrast);
+      border:none; border-radius:9px; padding:10px 16px;
+      cursor:pointer; box-shadow:0 4px 16px -8px var(--glow);
+      transition:transform .18s, box-shadow .18s;
+    }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 8px 22px -8px var(--glow); }
+    .btn-ghost {
+      font-size:12.5px; font-weight:600; color:var(--text-dim);
+      background:transparent; border:1px solid var(--border-strong);
+      border-radius:8px; padding:7px 13px;
+      transition:background .15s;
+    }
+    .btn-ghost:hover { background:var(--surface-2); }
+    .btn-danger {
+      font-size:12.5px; font-weight:600; color:#d9534f;
+      background:transparent; border:1px solid rgba(217,83,79,0.4);
+      border-radius:8px; padding:7px 13px;
+    }
+    .btn-sm { font-size:12px; padding:5px 11px; }
+
+    /* ── Form inputs ────────────────────────────────────────── */
+    .bs-input {
+      width:100%; font-size:13.5px;
+      background:var(--surface-2); border:1px solid var(--border);
+      border-radius:10px; padding:10px 13px; color:var(--text); outline:none;
+      transition:border-color .15s;
+    }
+    .bs-input:focus { border-color:var(--accent); }
+    .bs-input select { min-height: unset; }
+
+    /* ── Card ───────────────────────────────────────────────── */
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; }
+    .card-sm { padding:16px 18px; }
+    .card-title { font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:16px; }
+    .divider { height:1px; background:var(--border); margin:16px 0; }
+
+    /* ── Conversation panel ─────────────────────────────────── */
+    .convo-split {
+      display:grid; grid-template-columns:300px 1fr;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:16px; overflow:hidden; min-height:440px;
+    }
+    .convo-list { border-right:1px solid var(--border); display:flex; flex-direction:column; }
+    .convo-list-head {
+      padding:13px 16px; border-bottom:1px solid var(--border);
+      font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+      letter-spacing:0.1em; text-transform:uppercase; color:var(--text-faint);
+    }
+    .convo-item {
+      display:flex; align-items:center; gap:11px; padding:13px 16px;
+      border:none; border-bottom:1px solid var(--border); cursor:pointer;
+      text-align:left; background:transparent; border-left:3px solid transparent;
+      width:100%; transition:background .15s;
+    }
+    .convo-item:hover { background:var(--surface-2); }
+    .convo-item.active { background:var(--surface-2); border-left-color:var(--accent); }
+    .convo-avatar-wrap { position:relative; flex:none; }
+    .convo-avatar {
+      width:36px; height:36px; border-radius:50%;
+      background:var(--surface-2); display:flex; align-items:center; justify-content:center;
+      font-size:12px; font-weight:600; color:var(--text-dim);
+    }
+    .convo-dot {
+      position:absolute; bottom:-1px; right:-1px; width:11px; height:11px;
+      border-radius:50%; border:2px solid var(--surface);
+    }
+    .convo-meta { min-width:0; flex:1; }
+    .convo-row1 { display:flex; justify-content:space-between; gap:8px; }
+    .convo-cust { font-size:13.5px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .convo-time { font-size:11px; color:var(--text-faint); flex:none; }
+    .convo-preview { font-size:12.5px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+    .thread-area { display:flex; flex-direction:column; }
+    .thread-header {
+      padding:14px 18px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .thread-cust { font-size:14.5px; font-weight:600; }
+    .thread-channel { font-size:12px; color:var(--text-faint); }
+    .thread-messages { flex:1; padding:20px 18px; display:flex; flex-direction:column; gap:11px; overflow-y:auto; min-height:240px; }
+    .msg-wrap { position:relative; }
+    .msg-wrap.left { align-self:flex-start; max-width:74%; }
+    .msg-wrap.right { align-self:flex-end; max-width:74%; }
+    .msg-label {
+      position:absolute; top:-9px; right:10px;
+      font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.08em;
+      background:var(--surface); border:1px solid var(--border);
+      padding:2px 6px; border-radius:6px;
+    }
+    .msg-bubble { padding:11px 14px; font-size:13.5px; line-height:1.45; }
+    .msg-bubble.customer { background:var(--surface-2); color:var(--text); border-radius:14px 14px 14px 5px; }
+    .msg-bubble.ai       { background:var(--accent); color:var(--accent-contrast); border-radius:14px 14px 5px 14px; }
+    .msg-bubble.owner    { background:#1f9d6b; color:#fff; border-radius:14px 14px 5px 14px; }
+    .msg-label.ai    { color:var(--accent); right:10px; }
+    .msg-label.owner { color:#1f9d6b; right:10px; }
+
+    /* ── Login overlay ──────────────────────────────────────── */
+    #loginOverlay {
+      display:none; position:fixed; inset:0;
+      background:rgba(7,13,28,0.92); z-index:9999;
+      align-items:center; justify-content:center;
+    }
+    .login-card {
+      background:var(--surface,#0e1730); border:1px solid var(--border,rgba(120,160,255,0.14));
+      border-radius:20px; padding:40px 36px; max-width:400px; width:90%;
+      box-shadow:0 24px 80px rgba(0,0,0,0.6);
+    }
+    .login-eyebrow {
+      font-family:'IBM Plex Mono',monospace; font-size:11px;
+      letter-spacing:0.12em; text-transform:uppercase; color:var(--text-faint,#6076a8);
+      margin-bottom:6px;
+    }
+    .login-h2 {
+      font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700;
+      margin:0 0 24px; color:var(--text,#e3eaff);
+    }
+
+    /* ── Modal overlay ──────────────────────────────────────── */
+    .modal-bg {
+      display:none; position:fixed; inset:0;
+      background:rgba(7,13,28,0.7); z-index:8000;
+      align-items:center; justify-content:center;
+    }
+    .modal-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:20px; padding:32px 28px;
+      max-width:440px; width:90%;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    /* ── Misc ───────────────────────────────────────────────── */
+    .mono { font-family:'IBM Plex Mono',monospace; }
+    .num  { font-family:'Space Grotesk',sans-serif; font-weight:600; }
+    .green { color:#1f9d6b; }
+    .red   { color:#d9534f; }
+    .amber { color:#d98a1f; }
+    .faint { color:var(--text-faint); }
+    .dim   { color:var(--text-dim); }
+    .empty-state { padding:32px; text-align:center; font-size:13px; color:var(--text-faint); }
+    .row-gap12 { display:flex; flex-direction:column; gap:12px; }
+    .row-gap10 { display:flex; flex-direction:column; gap:10px; }
+    .two-col   { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+    .flex-between { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+
+    /* ── Responsive ─────────────────────────────────────────── */
+    @media(max-width:1080px){ .kpi-grid{ grid-template-columns:1fr 1fr !important; } }
+    @media(max-width:900px){
+      #bsSidebar{ display:none !important; }
+      .attn-grid,.two-col{ grid-template-columns:1fr !important; }
+      .convo-split{ grid-template-columns:1fr !important; }
+    }
+    @media(max-width:560px){
+      .kpi-grid{ grid-template-columns:1fr !important; }
+      #bsMain{ padding:18px 16px 40px; }
+    }
   </style>
 </head>
 <body>
-<!-- Login overlay -->
-<div id="loginOverlay" style="display:none;position:fixed;inset:0;background:rgba(8,10,20,0.92);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px 36px;max-width:400px;width:90%;box-shadow:0 24px 80px rgba(0,0,0,0.5);">
-    <div style="font-size:11px;letter-spacing:0.12em;color:var(--text-faint);margin-bottom:6px;">BISIRO PLATFORM</div>
-    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin:0 0 24px;">Admin sign in</h2>
-    <div style="display:flex;flex-direction:column;gap:12px;">
+
+<!-- ── Login overlay ──────────────────────────────────────────────── -->
+<div id="loginOverlay">
+  <div class="login-card" data-theme="blue">
+    <div class="login-eyebrow">Bisiro Platform</div>
+    <h2 class="login-h2">Admin sign in</h2>
+    <div class="row-gap12">
       <input id="loginEmail" class="bs-input" type="email" placeholder="Email address" autocomplete="email">
-      <input id="loginPass"  class="bs-input" type="password" placeholder="Password" autocomplete="current-password"
-             onkeydown="if(event.key==='Enter')doLogin()">
+      <input id="loginPass"  class="bs-input" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <button class="bs-btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:16px;" id="loginBtn">Sign in</button>
+    <button class="btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:16px;" id="loginBtn">Sign in</button>
     <div id="loginErr" style="display:none;margin-top:12px;font-size:13px;color:#d9534f;text-align:center;"></div>
   </div>
 </div>
 
-<div id="bisiro-app" data-theme="blue" style="display:flex;min-height:100vh;">
-  <aside id="bisiro-sidebar" class="bisiro-sidebar"></aside>
-  <main class="bisiro-main">
+<!-- ── App shell ───────────────────────────────────────────────────── -->
+<div id="bisiro-app" data-theme="blue" style="display:none;">
 
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:24px;">
-      <div>
-        <div class="bs-label">Platform</div>
-        <h1 class="bs-page-title" style="margin-top:4px;">Admin Console</h1>
+  <!-- Sidebar -->
+  <aside id="bsSidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-text">
+        <div class="sb-logo-name">Bisiro</div>
+        <div class="sb-logo-tag">Admin Console</div>
       </div>
-      <div id="adminBadge" style="font-size:12px;padding:6px 12px;background:color-mix(in srgb,var(--accent) 12%,transparent);border:1px solid var(--accent);border-radius:999px;color:var(--accent);">Platform owner</div>
     </div>
 
-    <!-- Tabs -->
-    <div class="admin-tabs-bar" id="adminTabs">
-      <button class="admin-tab" onclick="switchTab('overview',this)">Overview</button>
-      <button class="admin-tab" onclick="switchTab('subscribers',this)">Subscribers</button>
-      <button class="admin-tab" onclick="switchTab('payments',this)">Payments</button>
-      <button class="admin-tab admin-super-only" onclick="switchTab('pricing',this)">Pricing</button>
-      <button class="admin-tab" onclick="switchTab('replyLogs',this)">Reply logs</button>
-      <button class="admin-tab admin-super-only" onclick="switchTab('staff',this)">Staff</button>
-    </div>
+    <nav class="sb-nav" id="sbNav">
+      <button class="sb-item active" data-tab="overview" onclick="switchTab('overview',this)">
+        <span class="sb-item-left"><span class="sb-dot"></span>Overview</span>
+      </button>
+      <button class="sb-item" data-tab="subscribers" onclick="switchTab('subscribers',this)">
+        <span class="sb-item-left"><span class="sb-dot"></span>Subscribers</span>
+      </button>
+      <button class="sb-item" data-tab="payments" onclick="switchTab('payments',this)">
+        <span class="sb-item-left"><span class="sb-dot"></span>Payments</span>
+        <span class="sb-badge" id="pendingBadge" style="display:none;"></span>
+      </button>
+      <button class="sb-item admin-super-only" data-tab="pricing" onclick="switchTab('pricing',this)">
+        <span class="sb-item-left"><span class="sb-dot"></span>Pricing</span>
+      </button>
+      <button class="sb-item" data-tab="replyLogs" onclick="switchTab('replyLogs',this)">
+        <span class="sb-item-left"><span class="sb-dot"></span>Reply logs</span>
+      </button>
+      <button class="sb-item admin-super-only" data-tab="staff" onclick="switchTab('staff',this)">
+        <span class="sb-item-left"><span class="sb-dot"></span>Staff</span>
+      </button>
+    </nav>
 
+    <div class="sb-spacer"></div>
+
+    <div class="sb-footer">
+      <div class="sb-theme-label">Theme</div>
+      <div class="sb-pills" id="sbPills"></div>
+      <div class="sb-user">
+        <div class="sb-avatar"></div>
+        <div>
+          <div class="sb-user-name" id="sbUserName">—</div>
+          <div class="sb-user-role" id="sbUserRole">Support</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main id="bsMain">
     <div id="tabContent"></div>
-
   </main>
 </div>
 
+<!-- ── Staff modal ──────────────────────────────────────────────────── -->
+<div class="modal-bg" id="staffModal">
+  <div class="modal-card">
+    <div class="card-title" style="margin-bottom:20px;">Add staff account</div>
+    <div class="row-gap12">
+      <div>
+        <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Full name</label>
+        <input id="sName" class="bs-input" type="text" placeholder="e.g. Maria Santos">
+      </div>
+      <div>
+        <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Email address</label>
+        <input id="sEmail" class="bs-input" type="email" placeholder="staff@bisiro.ph">
+      </div>
+      <div>
+        <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Temporary password</label>
+        <input id="sPass" class="bs-input" type="password" placeholder="Min 8 characters">
+      </div>
+      <div>
+        <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Role</label>
+        <select id="sRole" class="bs-input" style="cursor:pointer;">
+          <option value="support">Support — view subscribers, add credits, approve payments</option>
+          <option value="super_admin">Super Admin — full access including pricing &amp; staff</option>
+        </select>
+      </div>
+    </div>
+    <div id="staffModalErr" style="display:none;margin-top:10px;font-size:13px;color:#d9534f;"></div>
+    <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:20px;">
+      <button class="btn-ghost" onclick="closeStaffModal()">Cancel</button>
+      <button class="btn-primary" id="staffCreateBtn" onclick="createStaff()">Create account</button>
+    </div>
+  </div>
+</div>
+
 <script>
+// ── State ─────────────────────────────────────────────────────────────
 let currentTab = '';
 let cachedData = {};
 let adminRole  = 'support';
+let adminEmail = '';
 
-// ── Auth ─────────────────────────────────────────────────────────────────────
+// ── Theme ─────────────────────────────────────────────────────────────
+const THEMES = {
+  light: 'linear-gradient(135deg,#f6f7f9 50%,#2f6bff 50%)',
+  dark:  'linear-gradient(135deg,#0a0d13 50%,#5b8cff 50%)',
+  blue:  'linear-gradient(135deg,#0e1730 50%,#4d8bff 50%)',
+  green: 'linear-gradient(135deg,#0d1d18 50%,#2dd4a7 50%)',
+  warm:  'linear-gradient(135deg,#fffdf8 50%,#cf7a1c 50%)',
+};
 
+function applyTheme(id) {
+  document.getElementById('bisiro-app').setAttribute('data-theme', id);
+  document.getElementById('loginOverlay').querySelector('.login-card').setAttribute('data-theme', id);
+  document.querySelectorAll('.sb-pill').forEach(p => p.classList.toggle('active', p.dataset.t === id));
+}
+
+function setTheme(id) {
+  applyTheme(id);
+  try { localStorage.setItem('bisiro-admin-theme', id); } catch(_) {}
+}
+
+function buildThemePills() {
+  const saved = (() => { try { return localStorage.getItem('bisiro-admin-theme') || 'blue'; } catch(_) { return 'blue'; } })();
+  const pills = document.getElementById('sbPills');
+  Object.entries(THEMES).forEach(([id, dot]) => {
+    const b = document.createElement('button');
+    b.className = 'sb-pill' + (id === saved ? ' active' : '');
+    b.dataset.t = id;
+    b.title = id.charAt(0).toUpperCase() + id.slice(1);
+    b.style.background = dot;
+    b.onclick = () => setTheme(id);
+    pills.appendChild(b);
+  });
+  applyTheme(saved);
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────
 function showLogin() {
-  const el = document.getElementById('loginOverlay');
-  el.style.display = 'flex';
+  document.getElementById('bisiro-app').style.display = 'none';
+  document.getElementById('loginOverlay').style.display = 'flex';
 }
 
 function hideLogin() {
   document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('bisiro-app').style.display = 'flex';
 }
 
 async function doLogin() {
@@ -83,12 +539,10 @@ async function doLogin() {
   const err   = document.getElementById('loginErr');
   const btn   = document.getElementById('loginBtn');
   err.style.display = 'none';
-  btn.disabled = true;
-  btn.textContent = 'Signing in…';
+  btn.disabled = true; btn.textContent = 'Signing in…';
   try {
     const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ email, password: pass })
     }).then(r => r.json());
     if (res.error) throw new Error(res.error);
@@ -98,34 +552,31 @@ async function doLogin() {
     err.textContent = e.message || 'Invalid credentials';
     err.style.display = 'block';
   }
-  btn.disabled = false;
-  btn.textContent = 'Sign in';
+  btn.disabled = false; btn.textContent = 'Sign in';
 }
 
 function initAfterAuth(email, role) {
-  adminRole = role || 'support';
-  document.getElementById('adminBadge').textContent = email;
-  // Show/hide super-admin-only tabs
+  adminRole  = role  || 'support';
+  adminEmail = email || '';
+  document.getElementById('sbUserName').textContent = email;
+  document.getElementById('sbUserRole').textContent = role === 'super_admin' ? 'Super Admin' : 'Support';
   document.querySelectorAll('.admin-super-only').forEach(el => {
     el.style.display = adminRole === 'super_admin' ? '' : 'none';
   });
-  const tab = new URLSearchParams(location.search).get('tab') || 'overview';
+  // Load pending payment count for badge
+  fetch('/api/admin/pending-payments').then(r => r.json()).then(rows => {
+    const badge = document.getElementById('pendingBadge');
+    if (rows.length) { badge.textContent = rows.length; badge.style.display = ''; }
+  }).catch(() => {});
+  // Activate first tab
   const tabNames = ['overview','subscribers','payments','pricing','replyLogs','staff'];
-  const tabIdx = tabNames.indexOf(tab);
-  const tabButtons = document.querySelectorAll('.admin-tab');
-  if (tabButtons[tabIdx >= 0 ? tabIdx : 0]) tabButtons[tabIdx >= 0 ? tabIdx : 0].classList.add('active');
-  loadTab(tabNames.indexOf(tab) >= 0 ? tab : 'overview');
+  const urlTab   = new URLSearchParams(location.search).get('tab') || 'overview';
+  const tab      = tabNames.includes(urlTab) ? urlTab : 'overview';
+  const btn      = document.querySelector(`.sb-item[data-tab="${tab}"]`);
+  switchTab(tab, btn || document.querySelector('.sb-item'));
 }
 
-function switchTab(tab, btn) {
-  if (currentTab === tab) return;
-  currentTab = tab;
-  document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  history.replaceState(null, '', '?tab=' + tab);
-  loadTab(tab);
-}
-
+// ── API helper ─────────────────────────────────────────────────────────
 async function api(path) {
   if (cachedData[path]) return cachedData[path];
   const res = await fetch(path);
@@ -135,205 +586,424 @@ async function api(path) {
   return r;
 }
 
+// ── Navigation ─────────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  if (currentTab === tab) return;
+  currentTab = tab;
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  const target = btn || document.querySelector(`.sb-item[data-tab="${tab}"]`);
+  if (target) target.classList.add('active');
+  history.replaceState(null, '', '?tab=' + tab);
+  loadTab(tab);
+}
+
 async function loadTab(tab) {
   const el = document.getElementById('tabContent');
-  el.innerHTML = '<div style="padding:32px;text-align:center;font-size:13px;color:var(--text-faint);">Loading…</div>';
-
-  if (tab === 'overview')     await renderOverview(el);
-  if (tab === 'subscribers')  await renderSubscribers(el);
-  if (tab === 'payments')     await renderPayments(el);
-  if (tab === 'pricing')      await renderPricing(el);
-  if (tab === 'replyLogs')    await renderReplyLogs(el);
-  if (tab === 'staff')        await renderStaff(el);
+  el.innerHTML = '<div class="empty-state" style="padding:48px;">Loading…</div>';
+  if (tab === 'overview')    await renderOverview(el);
+  if (tab === 'subscribers') await renderSubscribers(el);
+  if (tab === 'payments')    await renderPayments(el);
+  if (tab === 'pricing')     await renderPricing(el);
+  if (tab === 'replyLogs')   await renderReplyLogs(el);
+  if (tab === 'staff')       await renderStaff(el);
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────
+function initials(str) {
+  return (str || '?').replace(/[^a-zA-Z ]/g,'').split(' ').filter(Boolean)
+    .slice(0,2).map(w => w[0]).join('').toUpperCase() || '?';
+}
+function fmtPhp(n, dec=2) {
+  return '₱' + parseFloat(n||0).toLocaleString('en-PH',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function fmtDate(d, opts) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-PH', opts || {month:'short',day:'numeric',year:'numeric'});
+}
+function fmtTime(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function emptyRow(cols, msg) {
+  return `<div class="empty-state" style="grid-column:1/-1;padding:28px;">${msg||'No data yet.'}</div>`;
+}
+
+// ── Overview ────────────────────────────────────────────────────────────
 async function renderOverview(el) {
-  let stats = { total_users:0, active_users:0, total_revenue_php:0, replies_today:0 };
+  let stats = {};
   try { stats = await api('/api/admin/stats'); } catch(_) {}
-
-  el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;" class="bs-kpi-4">
-      <div class="bs-card" style="border-radius:16px;">
-        <div class="bs-label">Total subscribers</div>
-        <div class="bs-num" style="font-size:36px;margin-top:8px;">${stats.total_users||0}</div>
-      </div>
-      <div class="bs-card" style="border-radius:16px;">
-        <div class="bs-label">Active (paid setup)</div>
-        <div class="bs-num" style="font-size:36px;margin-top:8px;">${stats.active_users||0}</div>
-      </div>
-      <div class="bs-card" style="border-radius:16px;">
-        <div class="bs-label">Credits loaded (30d)</div>
-        <div class="bs-num" style="font-size:36px;margin-top:8px;">₱${parseFloat(stats.revenue_last_30d||0).toLocaleString('en-PH',{maximumFractionDigits:0})}</div>
-      </div>
-      <div class="bs-card" style="border-radius:16px;">
-        <div class="bs-label">AI replies (24h)</div>
-        <div class="bs-num" style="font-size:36px;margin-top:8px;">${stats.replies_last_24h||0}</div>
-      </div>
-    </div>
-
-    <div class="bs-section-title">Needs attention</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" class="bs-2col">
-      <div class="bs-attn-amber">
-        <div class="bs-label" style="color:#d98a1f;margin-bottom:8px;">Low-balance subscribers</div>
-        <div id="lowBalUsers" style="font-size:13px;color:var(--text-dim);">Loading…</div>
-      </div>
-      <div class="bs-attn-red">
-        <div class="bs-label" style="color:#d9534f;margin-bottom:8px;">Setup fees pending</div>
-        <div id="pendingSetup" style="font-size:13px;color:var(--text-dim);">Loading…</div>
-      </div>
-    </div>
-  `;
-
-  try {
-    const users = await api('/api/admin/users');
-    const lowBal = users.filter(u => parseFloat(u.credit_balance_php||0) < 50 && u.is_active);
-    document.getElementById('lowBalUsers').textContent = lowBal.length
-      ? lowBal.map(u => u.business_name||u.email).slice(0,3).join(', ') + (lowBal.length>3?' + '+(lowBal.length-3)+' more':'')
-      : 'None — all balances healthy ✓';
-    const pending = users.filter(u => !u.is_active && !u.setup_fee_paid);
-    document.getElementById('pendingSetup').textContent = pending.length
-      ? pending.map(u => u.business_name||u.email).slice(0,3).join(', ') + (pending.length>3?' + '+(pending.length-3)+' more':'')
-      : 'None pending ✓';
-  } catch(_) {}
-}
-
-async function renderSubscribers(el) {
   let users = [];
   try { users = await api('/api/admin/users'); } catch(_) {}
 
-  el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-    <input class="bs-input" style="max-width:280px;" placeholder="Search subscribers…" oninput="filterSubs(this.value)" id="subSearch">
-    <select class="bs-input" style="width:160px;min-height:unset;" id="subFilter" onchange="filterSubs(document.getElementById('subSearch').value)">
-      <option value="">All statuses</option>
-      <option value="active">Active</option>
-      <option value="inactive">Inactive</option>
-    </select>
-  </div>
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
-  <table style="width:100%;border-collapse:collapse;" id="subTable">
-    <thead><tr>
-      <th>Business</th><th>Email</th><th>Balance</th><th>Status</th><th>Joined</th><th></th>
-    </tr></thead>
-    <tbody id="subBody"></tbody>
-  </table></div>`;
+  const now = new Date().toLocaleDateString('en-PH',{month:'long',year:'numeric'});
+  const lowBal = users.filter(u => parseFloat(u.credit_balance_php||0) < 50 && u.is_active);
+  const unpaid  = users.filter(u => !u.setup_fee_paid);
+  const pending = parseInt(stats.pending_payments||0);
 
-  window._adminUsers = users;
-  filterSubs('');
+  el.innerHTML = `
+    <div class="pg-header">
+      <div>
+        <h1 class="pg-h1">Overview</h1>
+        <p class="pg-sub">All subscribers and platform health at a glance.</p>
+      </div>
+      <div class="pg-date mono">${now}</div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Subscribers</div>
+        <div class="kpi-num">${stats.total_users||0}</div>
+        <div class="kpi-sub">${stats.active_users||0} active</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Credits loaded (30d)</div>
+        <div class="kpi-num">${fmtPhp(stats.revenue_last_30d||0,0)}</div>
+        <div class="kpi-sub">Setup fees + top-ups</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">AI replies (24h)</div>
+        <div class="kpi-num">${stats.replies_last_24h||0}</div>
+        <div class="kpi-sub">Across all pages</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Pending payments</div>
+        <div class="kpi-num" style="color:${pending>0?'#d9534f':'var(--text)'}">${pending}</div>
+        <div class="kpi-sub">${pending > 0 ? 'Needs review' : 'All settled ✓'}</div>
+      </div>
+    </div>
+
+    <div class="sec-label">Needs attention</div>
+    <div class="attn-grid">
+      <div class="attn-card attn-red">
+        <div class="attn-title">
+          <div class="attn-head">Setup fees pending</div>
+          <span class="attn-count attn-count-red">${unpaid.length} account${unpaid.length!==1?'s':''}</span>
+        </div>
+        ${unpaid.length ? unpaid.slice(0,3).map(u => `
+          <div class="attn-row">
+            <div>
+              <div class="attn-biz">${u.business_name||u.email||'—'}</div>
+              <div class="attn-detail">₱20,000 setup fee unpaid</div>
+            </div>
+            <button class="btn-ghost btn-sm" onclick="switchTab('subscribers',null)">Review</button>
+          </div>`).join('')
+        : '<div class="attn-row" style="border:none;margin-top:10px;"><span class="faint" style="font-size:13px;">None pending ✓</span></div>'}
+      </div>
+      <div class="attn-card attn-amber">
+        <div class="attn-title">
+          <div class="attn-head">Low balance / paused</div>
+          <span class="attn-count attn-count-amber">${lowBal.length} account${lowBal.length!==1?'s':''}</span>
+        </div>
+        ${lowBal.length ? lowBal.slice(0,3).map(u => `
+          <div class="attn-row">
+            <div>
+              <div class="attn-biz">${u.business_name||u.email||'—'}</div>
+              <div class="attn-detail">${fmtPhp(u.credit_balance_php||0)} — ${parseFloat(u.credit_balance_php||0)<=0?'automation paused':'below ₱50 warning'}</div>
+            </div>
+            <button class="btn-ghost btn-sm" onclick="viewSub(${u.id})">View</button>
+          </div>`).join('')
+        : '<div class="attn-row" style="border:none;margin-top:10px;"><span class="faint" style="font-size:13px;">All balances healthy ✓</span></div>'}
+      </div>
+    </div>
+
+    <div class="flex-between" style="margin-top:30px;margin-bottom:14px;">
+      <div class="sec-label" style="margin:0;">All subscribers</div>
+    </div>
+    <div class="surf-table">
+      <div class="tbl-head sub-cols">
+        <div>Business</div><div>Status</div><div>Credit</div><div>Replies/mo</div><div>Pages</div><div>Joined</div><div></div>
+      </div>
+      ${users.length ? users.slice(0,8).map(u => subRow(u)).join('') : `<div class="empty-state">No subscribers yet.</div>`}
+    </div>`;
 }
 
-function filterSubs(q) {
+// ── Subscribers ────────────────────────────────────────────────────────
+async function renderSubscribers(el) {
+  let users = [];
+  try { users = await api('/api/admin/users'); } catch(_) {}
+  window._adminUsers = users;
+
+  el.innerHTML = `
+    <div class="pg-header">
+      <div>
+        <h1 class="pg-h1">Subscribers</h1>
+        <p class="pg-sub">All business accounts on the platform.</p>
+      </div>
+    </div>
+    <div class="flex-between" style="margin-bottom:16px;">
+      <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:4px;" id="subFilters">
+        ${['all','active','inactive'].map((f,i) => `
+          <button onclick="filterSubs(null,'${f}')" data-f="${f}" style="font-size:12.5px;font-weight:500;border:none;cursor:pointer;border-radius:6px;padding:6px 11px;background:${i===0?'var(--accent)':'transparent'};color:${i===0?'var(--accent-contrast)':'var(--text-dim)'};">${f.charAt(0).toUpperCase()+f.slice(1)}</button>
+        `).join('')}
+      </div>
+      <input class="bs-input" style="max-width:240px;" placeholder="Search business…" oninput="filterSubs(this.value,null)" id="subSearch">
+    </div>
+    <div class="surf-table">
+      <div class="tbl-head sub-cols">
+        <div>Business</div><div>Status</div><div>Credit</div><div>Replies/mo</div><div>Pages</div><div>Joined</div><div></div>
+      </div>
+      <div id="subBody"></div>
+    </div>`;
+
+  filterSubs('', 'all');
+}
+
+function subRow(u) {
+  const bal = parseFloat(u.credit_balance_php||0);
+  const balColor = bal < 50 ? '#d9534f' : 'var(--text)';
+  const status = u.is_active ? ['badge-green','Active'] : (!u.setup_fee_paid ? ['badge-red','Unpaid'] : ['badge-gray','Inactive']);
+  return `<div class="tbl-row sub-cols" onclick="viewSub(${u.id})">
+    <div class="sub-name-wrap">
+      <div class="sub-avatar">${initials(u.business_name||u.email)}</div>
+      <div><div class="sub-biz">${u.business_name||'—'}</div><div class="sub-type dim">${u.email||'—'}</div></div>
+    </div>
+    <div><span class="badge ${status[0]}">${status[1]}</span></div>
+    <div class="num" style="font-size:14px;font-weight:500;color:${balColor};">${fmtPhp(bal)}</div>
+    <div class="dim">—</div>
+    <div class="dim">${u.page_count||0}</div>
+    <div class="faint">${fmtDate(u.created_at)}</div>
+    <div><button class="btn-ghost btn-sm">View</button></div>
+  </div>`;
+}
+
+function filterSubs(q, f) {
   const users = window._adminUsers || [];
-  const f = document.getElementById('subFilter') ? document.getElementById('subFilter').value : '';
-  const filtered = users.filter(u =>
-    (!q || (u.business_name||u.email||'').toLowerCase().includes(q.toLowerCase())) &&
-    (!f || (f==='active' ? u.is_active : !u.is_active))
-  );
+  if (q === null) q = (document.getElementById('subSearch')||{}).value || '';
+  if (f === null) f = window._subFilter || 'all';
+  window._subFilter = f;
+  document.querySelectorAll('#subFilters button').forEach(b => {
+    const active = b.dataset.f === f;
+    b.style.background = active ? 'var(--accent)' : 'transparent';
+    b.style.color      = active ? 'var(--accent-contrast)' : 'var(--text-dim)';
+  });
+  const filtered = users.filter(u => {
+    const qOk = !q || (u.business_name||'').toLowerCase().includes(q.toLowerCase()) || (u.email||'').toLowerCase().includes(q.toLowerCase());
+    const fOk = f === 'all' || (f === 'active' && u.is_active) || (f === 'inactive' && !u.is_active);
+    return qOk && fOk;
+  });
   const body = document.getElementById('subBody');
   if (!body) return;
-  if (!filtered.length) { body.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text-faint);font-size:13px;">No subscribers found.</td></tr>'; return; }
-  body.innerHTML = filtered.map(u => {
-    const bal = parseFloat(u.credit_balance_php||0);
-    const balColor = bal < 50 ? '#d9534f' : 'var(--text)';
-    return '<tr class="bs-row-hover">'
-      + '<td><strong>' + (u.business_name||'—') + '</strong></td>'
-      + '<td style="color:var(--text-dim);">' + (u.email||'—') + '</td>'
-      + '<td style="font-family:\'Space Grotesk\',sans-serif;font-weight:600;color:'+balColor+';">₱' + bal.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</td>'
-      + '<td><span class="bs-status ' + (u.is_active ? 'bs-status-green' : 'bs-status-gray') + '">' + (u.is_active ? 'Active' : 'Inactive') + '</span></td>'
-      + '<td style="color:var(--text-faint);">' + (u.created_at ? new Date(u.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—') + '</td>'
-      + '<td><button class="bs-btn-ghost" style="padding:5px 11px;font-size:12px;" onclick="viewSub('+u.id+')">View</button></td>'
-      + '</tr>';
-  }).join('');
+  body.innerHTML = filtered.length ? filtered.map(subRow).join('') : `<div class="empty-state">No subscribers found.</div>`;
 }
 
+// ── Subscriber detail (with conversation panel) ─────────────────────
 function viewSub(id) {
   const u = (window._adminUsers||[]).find(u => u.id==id);
   if (!u) return;
+  const bal = parseFloat(u.credit_balance_php||0);
+  const balColor = bal < 50 ? '#d9534f' : 'var(--text)';
+  const status = u.is_active ? ['badge-green','Active'] : (!u.setup_fee_paid ? ['badge-red','Setup unpaid'] : ['badge-gray','Inactive']);
+
   document.getElementById('tabContent').innerHTML = `
     <div style="margin-bottom:18px;">
-      <button class="bs-btn-ghost" onclick="switchTab('subscribers',null)">← Back to subscribers</button>
+      <button class="btn-ghost btn-sm" onclick="switchTab('subscribers',null)">← Back to subscribers</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;" class="bs-2col">
-      <div class="bs-card" style="border-radius:16px;">
-        <div class="bs-section-title" style="margin:0 0 16px;">Account details</div>
-        <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;">
-          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-faint);">Business</span><strong>${u.business_name||'—'}</strong></div>
-          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-faint);">Email</span><span>${u.email||'—'}</span></div>
-          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-faint);">Status</span><span class="bs-status ${u.is_active?'bs-status-green':'bs-status-gray'}">${u.is_active?'Active':'Inactive'}</span></div>
-          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-faint);">Credit balance</span><strong style="font-family:'Space Grotesk',sans-serif;">₱${parseFloat(u.credit_balance_php||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
-          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-faint);">Joined</span><span>${u.created_at ? new Date(u.created_at).toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}) : '—'}</span></div>
+    <div style="display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:color-mix(in srgb,var(--accent) 11%,transparent);border:1px solid var(--border);padding:8px 13px;border-radius:9px;width:max-content;margin-bottom:20px;">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>
+      Viewing ${u.business_name||u.email||'subscriber'}
+    </div>
+    <div class="two-col" style="margin-bottom:22px;">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px;">Account details</div>
+        <div class="row-gap10" style="font-size:14px;">
+          <div class="flex-between"><span class="faint">Business</span><strong>${u.business_name||'—'}</strong></div>
+          <div class="flex-between"><span class="faint">Email</span><span class="dim">${u.email||'—'}</span></div>
+          <div class="flex-between"><span class="faint">Status</span><span class="badge ${status[0]}">${status[1]}</span></div>
+          <div class="flex-between"><span class="faint">Credit balance</span><strong class="num" style="color:${balColor};">${fmtPhp(bal)}</strong></div>
+          <div class="flex-between"><span class="faint">Connected pages</span><span>${u.page_count||0}</span></div>
+          <div class="flex-between"><span class="faint">Joined</span><span class="faint">${fmtDate(u.created_at,{month:'long',day:'numeric',year:'numeric'})}</span></div>
         </div>
-        <div style="height:1px;background:var(--border);margin:16px 0;"></div>
+        <div class="divider"></div>
         <div style="display:flex;gap:9px;flex-wrap:wrap;">
-          <button class="bs-btn-primary" onclick="adminAddCredit(${u.id})">Add credit</button>
-          <button class="bs-btn-danger" onclick="adminToggleActive(${u.id},${u.is_active})">${u.is_active?'Deactivate':'Activate'}</button>
+          <button class="btn-primary" onclick="adminAddCredit(${u.id})" style="font-size:13px;padding:9px 14px;">Add credit</button>
+          <button class="btn-danger btn-sm" onclick="adminToggleActive(${u.id},${u.is_active})">${u.is_active?'Deactivate':'Activate'}</button>
         </div>
       </div>
-      <div class="bs-card" style="border-radius:16px;">
-        <div class="bs-section-title" style="margin:0 0 14px;">Recent transactions</div>
-        <div id="subTxns" style="font-size:13px;color:var(--text-faint);">Loading…</div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px;">Recent transactions</div>
+        <div id="subTxns" class="faint" style="font-size:13px;">Loading…</div>
+      </div>
+    </div>
+
+    <div class="sec-label">Conversations</div>
+    <div class="convo-split" id="convoPanel">
+      <div class="convo-list">
+        <div class="convo-list-head">Conversations</div>
+        <div id="convoListBody"><div class="empty-state">Loading…</div></div>
+      </div>
+      <div class="thread-area" id="threadArea">
+        <div class="empty-state" style="margin:auto;">Select a conversation</div>
       </div>
     </div>`;
 
+  // Load transactions
   fetch('/api/admin/user/' + id + '/transactions').then(r => r.json()).then(txns => {
     const el = document.getElementById('subTxns');
+    if (!el) return;
     if (!txns.length) { el.textContent = 'No transactions yet.'; return; }
-    el.innerHTML = txns.slice(0,8).map(t => '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">'
-      + '<span style="color:var(--text-dim);">' + (t.description||t.type||'—') + '</span>'
-      + '<strong style="font-family:\'Space Grotesk\',sans-serif;">' + (t.type==='topup'?'+':'−') + '₱' + parseFloat(t.amount_php||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</strong>'
-      + '</div>').join('');
-  }).catch(() => { const el = document.getElementById('subTxns'); if(el) el.textContent = 'Could not load.'; });
+    el.innerHTML = txns.slice(0,6).map(t => `
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span class="dim">${t.description||t.type||'—'}<br><span class="faint" style="font-size:11px;">${fmtDate(t.created_at)}</span></span>
+        <strong class="num" style="font-size:14px;color:${t.type==='topup'?'#1f9d6b':'var(--text-dim)'};">${t.type==='topup'?'+':'−'}${fmtPhp(t.amount_php)}</strong>
+      </div>`).join('');
+  }).catch(() => {
+    const el = document.getElementById('subTxns');
+    if (el) el.textContent = 'Could not load.';
+  });
+
+  // Load conversations
+  fetch('/api/admin/user/' + id + '/conversations').then(r => r.json()).then(convos => {
+    const body = document.getElementById('convoListBody');
+    if (!body) return;
+    if (!convos.length) { body.innerHTML = '<div class="empty-state">No conversations yet.</div>'; return; }
+    window._adminConvos = convos;
+    body.innerHTML = convos.map((c,i) => {
+      const dotColor = c.ai_paused ? '#d98a1f' : '#1f9d6b';
+      const ini = initials(c.customer_name || c.customer_psid);
+      return `<button class="convo-item${i===0?' active':''}" onclick="loadThread(${c.id},this)">
+        <div class="convo-avatar-wrap">
+          <div class="convo-avatar">${ini}</div>
+          <span class="convo-dot" style="background:${dotColor};"></span>
+        </div>
+        <div class="convo-meta">
+          <div class="convo-row1">
+            <span class="convo-cust">${c.customer_name||c.customer_psid||'Unknown'}</span>
+            <span class="convo-time">${fmtDate(c.last_message_at,{month:'short',day:'numeric'})}</span>
+          </div>
+          <div class="convo-preview">${c.last_message||'—'}</div>
+        </div>
+      </button>`;
+    }).join('');
+    if (convos[0]) loadThread(convos[0].id, body.querySelector('.convo-item'));
+  }).catch(() => {
+    const body = document.getElementById('convoListBody');
+    if (body) body.innerHTML = '<div class="empty-state">Could not load conversations.</div>';
+  });
+}
+
+function loadThread(convoId, btn) {
+  document.querySelectorAll('.convo-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const c = (window._adminConvos||[]).find(x => x.id == convoId);
+  const thread = document.getElementById('threadArea');
+  if (!thread) return;
+  const statusMap = {
+    ongoing: ['badge-green','Automated'],
+    closing: ['badge-blue','Closing — review'],
+    spam:    ['badge-red','Spam'],
+    ended:   ['badge-gray','Ended'],
+  };
+  const st = statusMap[c&&c.status] || ['badge-gray','—'];
+  thread.innerHTML = `
+    <div class="thread-header">
+      <div>
+        <div class="thread-cust">${c&&c.customer_name||c&&c.customer_psid||'Customer'}</div>
+        <div class="thread-channel">${c&&c.page_name||'Facebook'}</div>
+      </div>
+      <span class="badge ${st[0]}">${st[1]}</span>
+    </div>
+    <div class="thread-messages" id="threadMsgs"><div class="faint" style="font-size:13px;margin:auto;">Loading…</div></div>`;
+
+  fetch('/api/admin/conversation/' + convoId + '/messages').then(r => r.json()).then(msgs => {
+    const el = document.getElementById('threadMsgs');
+    if (!el) return;
+    if (!msgs.length) { el.innerHTML = '<div class="faint" style="font-size:13px;margin:auto;">No messages yet.</div>'; return; }
+    el.innerHTML = msgs.map(m => {
+      const isRight = m.sender === 'ai' || m.sender === 'owner';
+      return `<div class="msg-wrap ${isRight?'right':'left'}">
+        ${isRight ? `<span class="msg-label ${m.sender}">${m.sender==='ai'?'AI':'You'}</span>` : ''}
+        <div class="msg-bubble ${m.sender}">${m.content||''}</div>
+      </div>`;
+    }).join('');
+    el.scrollTop = el.scrollHeight;
+  }).catch(() => {
+    const el = document.getElementById('threadMsgs');
+    if (el) el.innerHTML = '<div class="faint" style="font-size:13px;margin:auto;">Could not load messages.</div>';
+  });
 }
 
 async function adminAddCredit(id) {
-  const amt = parseFloat(prompt('Add credit (₱):'));
+  const amt = parseFloat(prompt('Add credit amount (₱):'));
   if (!amt || amt <= 0) return;
+  const desc = prompt('Description (optional):') || 'Admin credit adjustment';
   try {
-    await fetch('/api/admin/user/' + id + '/add-credit', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({amount_php:amt}) });
+    const r = await fetch('/api/admin/user/'+id+'/add-credit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount_php:amt,description:desc})}).then(r=>r.json());
+    if (r.error) { alert('Error: ' + r.error); return; }
     cachedData = {};
-    alert('Credit added.');
+    alert('₱' + amt.toLocaleString('en-PH') + ' added successfully.');
     viewSub(id);
   } catch(e) { alert('Failed: ' + e.message); }
 }
 
 async function adminToggleActive(id, current) {
   if (!confirm((current ? 'Deactivate' : 'Activate') + ' this account?')) return;
-  try {
-    await fetch('/api/admin/user/' + id + '/set-active', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({is_active:!current}) });
-    cachedData = {};
-    switchTab('subscribers', null);
-  } catch(e) { alert('Failed: ' + e.message); }
+  await fetch('/api/admin/user/'+id+'/set-active',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({is_active:!current})});
+  cachedData = {};
+  switchTab('subscribers', null);
 }
 
+// ── Payments ────────────────────────────────────────────────────────────
 async function renderPayments(el) {
-  let txns = [];
-  try { txns = await api('/api/admin/transactions'); } catch(_) {}
-  el.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">'
-    + '<table style="width:100%;border-collapse:collapse;"><thead><tr><th>Date</th><th>Business</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>'
-    + '<tbody>'
-    + (txns.length ? txns.map(t => '<tr class="bs-row-hover"><td style="color:var(--text-faint);">' + (t.created_at ? new Date(t.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—') + '</td>'
-      + '<td>' + (t.business_name||'—') + '</td>'
-      + '<td><span class="bs-status bs-status-' + (t.type==='topup'?'green':'gray') + '">' + (t.type||'—') + '</span></td>'
-      + '<td style="font-family:\'Space Grotesk\',sans-serif;font-weight:600;">₱' + parseFloat(t.amount_php||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</td>'
-      + '<td><span class="bs-status bs-status-' + (t.status==='confirmed'?'green':t.status==='failed'?'red':'amber') + '">' + (t.status||'pending') + '</span></td>'
-      + '</tr>').join('')
-    : '<tr><td colspan="5" style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">No transactions yet.</td></tr>')
-    + '</tbody></table></div>';
+  let txns = [], pending = [];
+  try { txns    = await api('/api/admin/transactions'); } catch(_) {}
+  try { pending = await api('/api/admin/pending-payments'); } catch(_) {}
+
+  el.innerHTML = `
+    <div class="pg-header">
+      <div><h1 class="pg-h1">Payments</h1><p class="pg-sub">All credit transactions on the platform.</p></div>
+    </div>
+    ${pending.length ? `
+    <div class="sec-label">Pending — needs approval</div>
+    <div class="surf-table" style="margin-bottom:28px;">
+      <div class="tbl-head pay-cols"><div>Date</div><div>Business</div><div>Amount</div><div>Type</div><div></div></div>
+      ${pending.map(t => `<div class="tbl-row pay-cols tbl-row-nc">
+        <div class="faint">${fmtDate(t.created_at)}</div>
+        <div>${t.user_email||'—'}</div>
+        <div class="num green" style="font-size:14px;">${fmtPhp(t.amount_php)}</div>
+        <div><span class="badge badge-amber">${t.type||'topup'}</span></div>
+        <div><button class="btn-primary btn-sm" onclick="approvePayment(${t.id})">Approve</button></div>
+      </div>`).join('')}
+    </div>` : ''}
+
+    <div class="sec-label">All transactions</div>
+    <div class="surf-table">
+      <div class="tbl-head pay-cols"><div>Date</div><div>Business</div><div>Amount</div><div>Type</div><div>Status</div></div>
+      ${txns.length ? txns.map(t => `<div class="tbl-row pay-cols tbl-row-nc">
+        <div class="faint">${fmtDate(t.created_at)}</div>
+        <div>${t.business_name||t.user_email||'—'}</div>
+        <div class="num" style="font-size:14px;color:${t.type==='topup'?'#1f9d6b':'var(--text-dim)'};">${t.type==='topup'?'+':'−'}${fmtPhp(t.amount_php)}</div>
+        <div><span class="badge badge-${t.type==='topup'?'green':'gray'}">${t.type||'—'}</span></div>
+        <div><span class="badge badge-${t.status==='confirmed'?'green':t.status==='failed'?'red':'amber'}">${t.status||'pending'}</span></div>
+      </div>`).join('') : `<div class="empty-state">No transactions yet.</div>`}
+    </div>`;
 }
 
+async function approvePayment(id) {
+  if (!confirm('Approve this payment and credit the user?')) return;
+  const r = await fetch('/api/admin/approve-payment/'+id,{method:'POST'}).then(r=>r.json());
+  if (r.error) { alert(r.error); return; }
+  cachedData = {};
+  alert('Payment approved.');
+  switchTab('payments', null);
+}
+
+// ── Pricing ──────────────────────────────────────────────────────────────
 async function renderPricing(el) {
-  let cfg = { usd_to_php_rate: 56.5, markup_multiplier: 2.9, min_topup_php: 500, setup_fee_php: 20000 };
+  let cfg = {};
   try {
     const rows = await api('/api/admin/pricing');
-    if (Array.isArray(rows)) { cfg = {}; rows.forEach(r => { cfg[r.key] = parseFloat(r.value); }); }
+    if (Array.isArray(rows)) rows.forEach(r => { cfg[r.key] = parseFloat(r.value); });
     else cfg = rows;
   } catch(_) {}
 
   el.innerHTML = `
+    <div class="pg-header">
+      <div><h1 class="pg-h1">Pricing</h1><p class="pg-sub">Cost formula: anthropic_cost_usd × usd_to_php × 2.9</p></div>
+    </div>
     <div style="max-width:560px;">
-      <div class="bs-card" style="border-radius:16px;margin-bottom:20px;">
-        <div class="bs-section-title" style="margin:0 0 18px;">Pricing configuration</div>
-        <div style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">These values drive the cost formula: <code style="background:var(--surface-2);padding:2px 7px;border-radius:5px;font-size:12px;">anthropic_cost_usd × usd_to_php × 2.9</code></div>
-        <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title" style="margin-bottom:18px;">Pricing configuration</div>
+        <div class="row-gap12 row-gap10">
           <div>
             <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">USD → PHP exchange rate</label>
             <input id="pRate" class="bs-input" type="number" step="0.01" value="${cfg.usd_to_php_rate||56.5}">
@@ -341,7 +1011,7 @@ async function renderPricing(el) {
           <div>
             <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Markup multiplier (currently 2.9×)</label>
             <input id="pMarkup" class="bs-input" type="number" step="0.1" value="${cfg.markup_multiplier||2.9}">
-            <div style="font-size:12px;color:var(--text-faint);margin-top:4px;">See PROJECT_SPEC §2 before changing this value.</div>
+            <div style="font-size:12px;color:var(--text-faint);margin-top:4px;">See PROJECT_SPEC §2 before changing.</div>
           </div>
           <div>
             <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Minimum top-up (₱)</label>
@@ -353,13 +1023,13 @@ async function renderPricing(el) {
           </div>
         </div>
         <div style="display:flex;justify-content:flex-end;margin-top:18px;">
-          <button class="bs-btn-primary" onclick="savePricing()">Save pricing</button>
+          <button class="btn-primary" onclick="savePricing()">Save pricing</button>
         </div>
         <div id="pricingStatus" style="display:none;margin-top:10px;font-size:13px;"></div>
       </div>
-      <div class="bs-attn-amber">
-        <div class="bs-label" style="color:#d98a1f;margin-bottom:6px;">Warning</div>
-        <div style="font-size:13px;line-height:1.5;">Changing the markup multiplier affects all future credit charges. Existing balances are not retroactively adjusted. See <strong>PROJECT_SPEC §2</strong> for the full pricing rationale.</div>
+      <div class="attn-card attn-amber" style="font-size:13px;line-height:1.5;">
+        <strong>Warning:</strong> Changing the markup multiplier affects all future credit charges.
+        Existing balances are not retroactively adjusted.
       </div>
     </div>`;
 }
@@ -373,113 +1043,80 @@ async function savePricing() {
   };
   const status = document.getElementById('pricingStatus');
   try {
-    await Promise.all(Object.entries(updates).map(([key, value]) =>
-      fetch('/api/admin/pricing/' + key, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({value}) })
+    await Promise.all(Object.entries(updates).map(([key,value]) =>
+      fetch('/api/admin/pricing/'+key,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({value})})
     ));
     cachedData = {};
-    status.style.display = 'block';
-    status.style.color = '#1f9d6b';
-    status.textContent = 'Pricing updated.';
-    setTimeout(() => status.style.display = 'none', 3000);
+    status.style.display='block'; status.style.color='#1f9d6b'; status.textContent='Pricing updated.';
+    setTimeout(()=>status.style.display='none',3000);
   } catch(e) {
-    status.style.display = 'block';
-    status.style.color = '#d9534f';
-    status.textContent = 'Save failed: ' + e.message;
+    status.style.display='block'; status.style.color='#d9534f'; status.textContent='Save failed: '+e.message;
   }
 }
 
+// ── Reply logs ───────────────────────────────────────────────────────────
 async function renderReplyLogs(el) {
-  let resp = { rows: [], total: 0 };
+  let resp = {rows:[], total:0};
   try { resp = await api('/api/admin/reply-logs?limit=50'); } catch(_) {}
-  const logs = Array.isArray(resp) ? resp : (resp.rows || []);
-  el.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">'
-    + '<table style="width:100%;border-collapse:collapse;"><thead><tr><th>Time</th><th>Business</th><th>Type</th><th>Cost (₱)</th><th>Input tokens</th></tr></thead>'
-    + '<tbody>'
-    + (logs.length ? logs.map(l => '<tr class="bs-row-hover"><td style="color:var(--text-faint);white-space:nowrap;">' + (l.replied_at ? new Date(l.replied_at).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—') + '</td>'
-      + '<td>' + (l.business_name||l.user_email||'—') + '</td>'
-      + '<td><span class="bs-status bs-status-' + (l.reply_type==='spam'?'red':l.reply_type==='closing'?'blue':'green') + '">' + (l.reply_type||'ongoing') + '</span></td>'
-      + '<td style="font-family:\'Space Grotesk\',sans-serif;">₱' + parseFloat(l.cost_php||0).toFixed(4) + '</td>'
-      + '<td style="color:var(--text-dim);">' + (l.input_tokens||'—') + '</td>'
-      + '</tr>').join('')
-    : '<tr><td colspan="5" style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">No reply logs yet.</td></tr>')
-    + '</tbody></table></div>';
+  const logs = Array.isArray(resp) ? resp : (resp.rows||[]);
+
+  el.innerHTML = `
+    <div class="pg-header">
+      <div><h1 class="pg-h1">Reply logs</h1><p class="pg-sub">All AI-generated replies across the platform.</p></div>
+    </div>
+    <div class="surf-table">
+      <div class="tbl-head log-cols"><div>Time</div><div>Business</div><div>Type</div><div>Cost</div><div>Tokens in</div></div>
+      ${logs.length ? logs.map(l => `<div class="tbl-row log-cols tbl-row-nc">
+        <div class="faint mono" style="font-size:12px;">${fmtTime(l.replied_at)}</div>
+        <div>${l.business_name||l.user_email||'—'}</div>
+        <div><span class="badge badge-${l.reply_type==='spam'?'red':l.reply_type==='closing'?'blue':'green'}">${l.reply_type||'ongoing'}</span></div>
+        <div class="mono dim">${fmtPhp(l.cost_php||0,4)}</div>
+        <div class="dim">${l.input_tokens||'—'}</div>
+      </div>`).join('') : `<div class="empty-state">No reply logs yet.</div>`}
+    </div>`;
 }
 
-// ── Staff tab ─────────────────────────────────────────────────────────────────
-
+// ── Staff ────────────────────────────────────────────────────────────────
 async function renderStaff(el) {
   let staff = [];
   try { staff = await api('/api/admin/staff'); } catch(_) {}
 
   el.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+    <div class="pg-header">
       <div>
-        <div class="bs-section-title" style="margin:0;">Staff accounts</div>
-        <div style="font-size:13px;color:var(--text-faint);margin-top:3px;">Only super_admin accounts can manage pricing, staff, and approve payments.</div>
+        <h1 class="pg-h1">Staff</h1>
+        <p class="pg-sub">Manage admin accounts. Super admins have full access including pricing and staff.</p>
       </div>
-      <button class="bs-btn-primary" onclick="openStaffModal()">+ Add staff</button>
+      <button class="btn-primary" onclick="openStaffModal()">+ Add staff</button>
     </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
-      <table style="width:100%;border-collapse:collapse;">
-        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
-        <tbody id="staffBody">${renderStaffRows(staff)}</tbody>
-      </table>
-    </div>
-
-    <!-- Staff modal -->
-    <div id="staffModal" style="display:none;position:fixed;inset:0;background:rgba(8,10,20,0.7);z-index:8000;align-items:center;justify-content:center;">
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-        <div class="bs-section-title" style="margin:0 0 20px;">Add staff account</div>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div>
-            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Full name</label>
-            <input id="sName" class="bs-input" type="text" placeholder="e.g. Maria Santos">
-          </div>
-          <div>
-            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Email address</label>
-            <input id="sEmail" class="bs-input" type="email" placeholder="staff@bisiro.ph">
-          </div>
-          <div>
-            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Temporary password</label>
-            <input id="sPass" class="bs-input" type="password" placeholder="Min 8 characters">
-          </div>
-          <div>
-            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;">Role</label>
-            <select id="sRole" class="bs-input" style="min-height:unset;">
-              <option value="support">Support — can view subscribers, add credits, approve payments</option>
-              <option value="super_admin">Super Admin — full access including pricing & staff</option>
-            </select>
-          </div>
-        </div>
-        <div id="staffModalErr" style="display:none;margin-top:10px;font-size:13px;color:#d9534f;"></div>
-        <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:20px;">
-          <button class="bs-btn-ghost" onclick="closeStaffModal()">Cancel</button>
-          <button class="bs-btn-primary" id="staffCreateBtn" onclick="createStaff()">Create account</button>
-        </div>
-      </div>
+    <div class="surf-table">
+      <div class="tbl-head stf-cols"><div>Name</div><div>Email</div><div>Role</div><div>Status</div><div>Joined</div><div></div></div>
+      <div id="staffBody">${renderStaffRows(staff)}</div>
     </div>`;
 }
 
 function renderStaffRows(staff) {
-  if (!staff.length) return '<tr><td colspan="6" style="padding:24px;text-align:center;font-size:13px;color:var(--text-faint);">No staff accounts yet.</td></tr>';
-  return staff.map(s => '<tr class="bs-row-hover">'
-    + '<td><strong>' + (s.name || '—') + '</strong></td>'
-    + '<td style="color:var(--text-dim);">' + s.email + '</td>'
-    + '<td><span class="bs-status ' + (s.role === 'super_admin' ? 'bs-status-blue' : 'bs-status-green') + '">' + (s.role === 'super_admin' ? 'Super Admin' : 'Support') + '</span></td>'
-    + '<td><span class="bs-status ' + (s.is_active ? 'bs-status-green' : 'bs-status-gray') + '">' + (s.is_active ? 'Active' : 'Disabled') + '</span></td>'
-    + '<td style="color:var(--text-faint);">' + (s.created_at ? new Date(s.created_at).toLocaleDateString('en-PH', {month:'short',day:'numeric',year:'numeric'}) : '—') + '</td>'
-    + '<td style="display:flex;gap:6px;">'
-    + '<button class="bs-btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="toggleStaff(' + s.id + ',' + s.is_active + ')">' + (s.is_active ? 'Disable' : 'Enable') + '</button>'
-    + '<button class="bs-btn-danger" style="padding:4px 10px;font-size:12px;" onclick="deleteStaff(' + s.id + ',\'' + s.email + '\')">Delete</button>'
-    + '</td></tr>'
-  ).join('');
+  if (!staff.length) return '<div class="empty-state">No staff accounts yet.</div>';
+  return staff.map(s => `<div class="tbl-row stf-cols tbl-row-nc">
+    <div><strong>${s.name||'—'}</strong></div>
+    <div class="dim">${s.email}</div>
+    <div><span class="badge badge-${s.role==='super_admin'?'blue':'green'}">${s.role==='super_admin'?'Super Admin':'Support'}</span></div>
+    <div><span class="badge badge-${s.is_active?'green':'gray'}">${s.is_active?'Active':'Disabled'}</span></div>
+    <div class="faint">${fmtDate(s.created_at)}</div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn-ghost btn-sm" onclick="toggleStaff(${s.id},${s.is_active})">${s.is_active?'Disable':'Enable'}</button>
+      <button class="btn-danger btn-sm" onclick="deleteStaff(${s.id},'${s.email}')">Delete</button>
+    </div>
+  </div>`).join('');
 }
 
 function openStaffModal() {
-  const m = document.getElementById('staffModal');
-  if (m) { document.getElementById('sName').value=''; document.getElementById('sEmail').value=''; document.getElementById('sPass').value=''; document.getElementById('sRole').value='support'; document.getElementById('staffModalErr').style.display='none'; m.style.display='flex'; }
+  ['sName','sEmail','sPass'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  const r=document.getElementById('sRole'); if(r) r.value='support';
+  const e=document.getElementById('staffModalErr'); if(e){e.style.display='none';}
+  document.getElementById('staffModal').style.display='flex';
 }
-function closeStaffModal() { const m=document.getElementById('staffModal'); if(m) m.style.display='none'; }
+function closeStaffModal() { document.getElementById('staffModal').style.display='none'; }
 
 async function createStaff() {
   const name     = document.getElementById('sName').value.trim();
@@ -488,50 +1125,42 @@ async function createStaff() {
   const role     = document.getElementById('sRole').value;
   const err      = document.getElementById('staffModalErr');
   const btn      = document.getElementById('staffCreateBtn');
-  err.style.display = 'none';
+  err.style.display='none';
   if (!email || !password) { err.textContent='Email and password are required.'; err.style.display='block'; return; }
-  if (password.length < 8)  { err.textContent='Password must be at least 8 characters.'; err.style.display='block'; return; }
+  if (password.length < 8) { err.textContent='Password must be at least 8 characters.'; err.style.display='block'; return; }
   btn.disabled=true; btn.textContent='Creating…';
   try {
-    const res = await fetch('/api/admin/staff', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,email,password,role}) }).then(r=>r.json());
+    const res = await fetch('/api/admin/staff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,password,role})}).then(r=>r.json());
     if (res.error) throw new Error(res.error);
     closeStaffModal();
     cachedData = {};
     switchTab('staff', null);
-  } catch(e) {
-    err.textContent = e.message;
-    err.style.display = 'block';
-  }
+  } catch(e) { err.textContent=e.message; err.style.display='block'; }
   btn.disabled=false; btn.textContent='Create account';
 }
 
 async function toggleStaff(id, current) {
-  if (!confirm((current ? 'Disable' : 'Enable') + ' this staff account?')) return;
-  await fetch('/api/admin/staff/' + id, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({is_active:!current}) });
-  cachedData = {};
-  switchTab('staff', null);
+  if (!confirm((current?'Disable':'Enable')+' this staff account?')) return;
+  await fetch('/api/admin/staff/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({is_active:!current})});
+  cachedData={}; switchTab('staff',null);
 }
 
 async function deleteStaff(id, email) {
-  if (!confirm('Permanently delete ' + email + '? This cannot be undone.')) return;
-  const res = await fetch('/api/admin/staff/' + id, { method:'DELETE' }).then(r=>r.json());
-  if (res.error) { alert(res.error); return; }
-  cachedData = {};
-  switchTab('staff', null);
+  if (!confirm('Permanently delete '+email+'? This cannot be undone.')) return;
+  const r=await fetch('/api/admin/staff/'+id,{method:'DELETE'}).then(r=>r.json());
+  if (r.error) { alert(r.error); return; }
+  cachedData={}; switchTab('staff',null);
 }
 
-// ── Page init (auth-first) ────────────────────────────────────────────────────
-
-BisiroShell.init({ role:'admin', active:'overview', user:{} });
+// ── Bootstrap ─────────────────────────────────────────────────────────────
+buildThemePills();
 
 (async () => {
   try {
     const me = await fetch('/api/admin/me').then(r => r.json());
     if (me.error) { showLogin(); return; }
     initAfterAuth(me.email, me.role);
-  } catch (_) {
-    showLogin();
-  }
+  } catch(_) { showLogin(); }
 })();
 </script>
 </body>
