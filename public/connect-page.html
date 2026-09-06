@@ -90,120 +90,28 @@
 </div>
 
 <script>
-const USER_ID = 1;
-let fbAccessToken = null;
-let selectedPageId = null;
-let selectedPageToken = null;
-let fbPages = [];
+let USER_ID = null;
 
-async function startOAuth() {
-  const btn = document.getElementById('fbOauthBtn');
-  const status = document.getElementById('oauthStatus');
-  btn.disabled = true;
-  btn.textContent = 'Redirecting to Facebook…';
-
+// Auth gate
+(async () => {
   try {
-    // Get the OAuth URL from the backend
-    const r = await fetch('/api/facebook/oauth-url?user_id=' + USER_ID).then(r => r.json());
-    if (r.url) {
-      window.location.href = r.url;
-    } else {
-      throw new Error(r.error || 'Could not start Facebook login.');
-    }
-  } catch(e) {
-    status.style.display = 'block';
-    status.style.background = 'rgba(217,83,79,0.1)';
-    status.style.color = '#d9534f';
-    status.textContent = e.message + ' (Make sure FB_APP_ID and FB_APP_SECRET are set in your .env)';
-    btn.disabled = false;
-    btn.innerHTML = '<span style="font-size:16px;">f</span> Continue with Facebook';
-  }
-}
+    const r = await fetch('/api/user/me');
+    if (!r.ok) { window.location.href = '/login.html'; return; }
+    const me = await r.json();
+    if (!me.is_active) { window.location.href = '/login.html'; return; }
+    USER_ID = me.id;
+    init();
+  } catch { window.location.href = '/login.html'; }
+})();
 
-function enableStep2(pages) {
-  fbPages = pages;
-  const step = document.getElementById('choosePageStep');
-  step.style.opacity = '1';
-  step.style.pointerEvents = 'auto';
-
-  document.getElementById('step1Badge').style.background = '#1f9d6b';
-  document.getElementById('step1Badge').textContent = '✓';
-
-  const oauthStatus = document.getElementById('oauthStatus');
-  oauthStatus.style.display = 'block';
-  oauthStatus.style.background = 'rgba(31,157,107,0.12)';
-  oauthStatus.style.color = '#1f9d6b';
-  oauthStatus.textContent = 'Facebook login successful. Choose a page below.';
-
-  const list = document.getElementById('pageChoiceList');
-  if (!pages.length) {
-    list.innerHTML = '<div style="font-size:13px;color:#d98a1f;">No Pages found on this Facebook account. Make sure you are an admin of the Page.</div>';
-    return;
-  }
-  list.innerHTML = pages.map(p =>
-    '<button onclick="selectPage(\'' + p.id + '\',\'' + (p.access_token||'') + '\',\'' + (p.name||p.id) + '\')" '
-    + 'style="display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--surface-2);border:1.5px solid var(--border);border-radius:11px;padding:13px 16px;cursor:pointer;text-align:left;transition:border-color .15s;" '
-    + 'onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-    + '<div><div style="font-size:14px;font-weight:600;color:var(--text);">' + (p.name||p.id) + '</div>'
-    + '<div style="font-size:12px;color:var(--text-faint);">Page ID: ' + p.id + '</div></div>'
-    + '<span style="font-size:12px;color:var(--accent);">Select →</span>'
-    + '</button>'
-  ).join('');
-}
-
-function selectPage(id, token, name) {
-  selectedPageId = id;
-  selectedPageToken = token;
-
-  // Highlight selected
-  document.querySelectorAll('#pageChoiceList button').forEach(b => {
-    b.style.borderColor = b.onclick.toString().includes(id) ? 'var(--accent)' : 'var(--border)';
-  });
-
-  const confirmStep = document.getElementById('confirmStep');
-  confirmStep.style.opacity = '1';
-  confirmStep.style.pointerEvents = 'auto';
-
-  const nameEl = document.getElementById('confirmPageName');
-  nameEl.style.display = 'block';
-  nameEl.textContent = '📘 ' + name;
-
-  document.getElementById('activateBtn').style.display = 'inline-flex';
-}
-
-async function activatePage() {
-  if (!selectedPageId) return;
-  const btn = document.getElementById('activateBtn');
-  const status = document.getElementById('activateStatus');
-  btn.disabled = true;
-  btn.textContent = 'Activating…';
-
-  try {
-    const r = await fetch('/api/integrations/connect-page', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ user_id: USER_ID, page_id: selectedPageId, page_access_token: selectedPageToken })
-    }).then(r => r.json());
-
-    if (r.error) throw new Error(r.error);
-
-    status.style.display = 'block';
-    status.style.color = '#1f9d6b';
-    status.innerHTML = 'Page connected! <a href="/dashboard.html" style="color:var(--accent);font-weight:600;">Go to Dashboard →</a>';
-    btn.style.display = 'none';
-    loadConnected();
-  } catch(e) {
-    status.style.display = 'block';
-    status.style.color = '#d9534f';
-    status.textContent = 'Failed: ' + e.message;
-    btn.disabled = false;
-    btn.textContent = 'Activate automation';
-  }
+function startOAuth() {
+  // Server handles the full redirect flow — just navigate to the start route
+  window.location.href = '/auth/facebook/start';
 }
 
 async function loadConnected() {
   try {
-    const pages = await fetch('/api/integrations/pages?user_id=' + USER_ID).then(r => r.json());
+    const pages = await fetch('/api/integrations/pages').then(r => r.json());
     if (!pages.length) return;
     document.getElementById('alreadyConnected').style.display = 'block';
     document.getElementById('connectedList').innerHTML = pages.map(p =>
@@ -221,40 +129,43 @@ async function loadConnected() {
 async function disconnectPage(pageId) {
   if (!confirm('Disconnect this page? AI automation will stop immediately.')) return;
   try {
-    await fetch('/api/integrations/disconnect-page', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:USER_ID,page_id:pageId}) });
+    await fetch('/api/integrations/disconnect-page', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ page_id: pageId })
+    });
     loadConnected();
   } catch(e) { alert('Failed: ' + e.message); }
 }
 
-// Handle OAuth callback (code param in URL)
-const params = new URLSearchParams(location.search);
-if (params.get('code')) {
-  // Exchange code for token via backend
-  const oauthStatus = document.getElementById('oauthStatus');
-  oauthStatus.style.display = 'block';
-  oauthStatus.style.background = 'rgba(31,157,107,0.12)';
-  oauthStatus.style.color = '#1f9d6b';
-  oauthStatus.textContent = 'Connecting to Facebook…';
-  document.getElementById('fbOauthBtn').disabled = true;
+function init() {
+  const params = new URLSearchParams(location.search);
+  const connected = params.get('connected');
+  const error     = params.get('error');
 
-  fetch('/api/facebook/oauth-callback?code=' + params.get('code') + '&user_id=' + USER_ID)
-    .then(r => r.json())
-    .then(r => {
-      if (r.error) throw new Error(r.error);
-      fbAccessToken = r.access_token;
-      enableStep2(r.pages || []);
-      history.replaceState(null, '', '/connect-page.html');
-    })
-    .catch(e => {
-      oauthStatus.style.background = 'rgba(217,83,79,0.1)';
-      oauthStatus.style.color = '#d9534f';
-      oauthStatus.textContent = 'OAuth failed: ' + e.message;
-      document.getElementById('fbOauthBtn').disabled = false;
-      document.getElementById('fbOauthBtn').innerHTML = '<span style="font-size:16px;">f</span> Continue with Facebook';
-    });
+  if (connected) {
+    // Came back from successful OAuth — show success banner
+    const status = document.getElementById('oauthStatus');
+    status.style.display = 'block';
+    status.style.background = 'rgba(31,157,107,0.12)';
+    status.style.color = '#1f9d6b';
+    status.textContent = connected + ' page' + (connected > 1 ? 's' : '') + ' connected successfully.';
+    document.getElementById('step1Badge').style.background = '#1f9d6b';
+    document.getElementById('step1Badge').textContent = '✓';
+    history.replaceState(null, '', '/connect-page.html');
+  }
+
+  if (error) {
+    const status = document.getElementById('oauthStatus');
+    status.style.display = 'block';
+    status.style.background = 'rgba(217,83,79,0.1)';
+    status.style.color = '#d9534f';
+    status.textContent = 'Connection failed: ' + decodeURIComponent(error);
+    history.replaceState(null, '', '/connect-page.html');
+  }
+
+  loadConnected();
 }
-
-loadConnected();
 </script>
 </body>
 </html>

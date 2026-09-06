@@ -41,10 +41,10 @@ router.get('/facebook/callback', async (req, res) => {
     }
 
     delete req.session.pkce;
-    res.send(`Connected ${pages.length} page(s): ${pages.map(p => p.name).join(', ')}. You can close this tab.`);
+    res.redirect('/connect-page.html?connected=' + pages.length);
   } catch (err) {
     console.error('Facebook callback error:', err.message);
-    res.status(500).send(`Connection failed: ${err.message}`);
+    res.redirect('/connect-page.html?error=' + encodeURIComponent(err.message));
   }
 });
 
